@@ -4,6 +4,7 @@ import com.sun.net.httpserver.HttpExchange;
 import mrp.model.User;
 import mrp.util.JsonUtil;
 import mrp.database.DatabaseConnection;
+import mrp.util.PasswordHasher;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -41,13 +42,15 @@ public class UserService {
                 }
             }
 
-            // Insert new user
+            // Insert new user WITH PASSWORD HASHING
             String insertSql = "INSERT INTO users (id, username, password) VALUES (?, ?, ?)";
             try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
                 String userId = UUID.randomUUID().toString();
+                String hashedPassword = PasswordHasher.hash(user.getPassword()); // Hash the password
+
                 insertStmt.setString(1, userId);
                 insertStmt.setString(2, user.getUsername());
-                insertStmt.setString(3, user.getPassword());
+                insertStmt.setString(3, hashedPassword); // Store the hashed password
 
                 int rowsAffected = insertStmt.executeUpdate();
 
@@ -88,18 +91,25 @@ public class UserService {
 
             conn = dbConnection.getConnection();
 
-            // Check credentials against database
-            String sql = "SELECT id FROM users WHERE username = ? AND password = ?";
+            // Get stored hash from database
+            String sql = "SELECT id, password FROM users WHERE username = ?";
             try (PreparedStatement stmt = conn.prepareStatement(sql)) {
                 stmt.setString(1, user.getUsername());
-                stmt.setString(2, user.getPassword());
 
                 ResultSet rs = stmt.executeQuery();
 
                 if (rs.next()) {
-                    // Valid credentials - generate token
-                    String token = user.getUsername() + "-mrpToken";
-                    sendSuccess(exchange, 200, token);
+                    String storedHash = rs.getString("password");
+                    String providedPassword = user.getPassword();
+
+                    // Verify the password against the stored hash
+                    if (PasswordHasher.verify(providedPassword, storedHash)) {
+                        // Valid credentials - generate token
+                        String token = user.getUsername() + "-mrpToken";
+                        sendSuccess(exchange, 200, token);
+                    } else {
+                        sendError(exchange, 401, "Invalid username or password");
+                    }
                 } else {
                     sendError(exchange, 401, "Invalid username or password");
                 }
