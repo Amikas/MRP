@@ -26,7 +26,7 @@ public class MediaHandler implements HttpHandler {
                         mediaService.getAllMedia(exchange);
                     }
                     break;
-                case "PUT":
+                case "PATCH":
                     mediaService.updateMedia(exchange);
                     break;
                 case "DELETE":

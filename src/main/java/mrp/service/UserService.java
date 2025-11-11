@@ -9,6 +9,8 @@ import mrp.util.PasswordHasher;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.*;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 public class UserService {
@@ -31,40 +33,38 @@ public class UserService {
 
             conn = dbConnection.getConnection();
 
-            // Check if username already exists
-            String checkSql = "SELECT id FROM users WHERE username = ?";
-            try (PreparedStatement checkStmt = conn.prepareStatement(checkSql)) {
-                checkStmt.setString(1, user.getUsername());
-                ResultSet rs = checkStmt.executeQuery();
-                if (rs.next()) {
-                    sendError(exchange, 409, "Username already exists");
-                    return;
-                }
-            }
 
-            // Insert new user WITH PASSWORD HASHING
             String insertSql = "INSERT INTO users (id, username, password) VALUES (?, ?, ?)";
             try (PreparedStatement insertStmt = conn.prepareStatement(insertSql)) {
                 String userId = UUID.randomUUID().toString();
-                String hashedPassword = PasswordHasher.hash(user.getPassword()); // Hash the password
+                String hashedPassword = PasswordHasher.hash(user.getPassword());
 
                 insertStmt.setString(1, userId);
                 insertStmt.setString(2, user.getUsername());
-                insertStmt.setString(3, hashedPassword); // Store the hashed password
+                insertStmt.setString(3, hashedPassword);
 
                 int rowsAffected = insertStmt.executeUpdate();
 
                 if (rowsAffected > 0) {
-                    String response = "User registered successfully";
-                    sendSuccess(exchange, 201, response);
+                    sendSuccess(exchange, 201, "User registered successfully");
                 } else {
-                    sendError(exchange, 500, "Failed to register user");
+                    sendError(exchange, 400, "Invalid user data");
                 }
+
+            } catch (SQLException e) {
+                if (e.getSQLState().equals("23505")) {
+                    sendError(exchange, 409, "Username already exists");
+                }else {
+                    sendError(exchange, 400, "Bad request: " + e.getMessage());
+                }
+            } catch (Exception e) {
+                sendError(exchange, 500, "Internal server error");
             }
+
 
         } catch (SQLException e) {
             e.printStackTrace();
-            sendError(exchange, 500, "Database error: " + e.getMessage());
+            sendError(exchange, 500, "Database error: " + e.getMessage()); // change status code
         } finally {
             if (conn != null) {
                 try {
@@ -106,7 +106,10 @@ public class UserService {
                     if (PasswordHasher.verify(providedPassword, storedHash)) {
                         // Valid credentials - generate token
                         String token = user.getUsername() + "-mrpToken";
-                        sendSuccess(exchange, 200, token);
+                        user.setId(rs.getString("id"));
+                        user.setToken(token);
+                        user.setPassword("****");
+                        sendSuccess(exchange, 200, user); 
                     } else {
                         sendError(exchange, 401, "Invalid username or password");
                     }
@@ -129,17 +132,26 @@ public class UserService {
         }
     }
 
-    private void sendSuccess(HttpExchange exchange, int code, String message) throws IOException {
-        exchange.sendResponseHeaders(code, message.length());
+    private void sendSuccess(HttpExchange exchange, int code, Object data) throws IOException {
+        String response = JsonUtil.toJson(data);
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(code, response.length());
         try (OutputStream os = exchange.getResponseBody()) {
-            os.write(message.getBytes());
+            os.write(response.getBytes());
         }
     }
 
     private void sendError(HttpExchange exchange, int code, String message) throws IOException {
-        exchange.sendResponseHeaders(code, message.length());
+        Map<String, String> errorResponse = new HashMap<>();
+        errorResponse.put("error", message);
+        errorResponse.put("status", String.valueOf(code));
+
+        String response = JsonUtil.toJson(errorResponse);
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(code, response.length());
         try (OutputStream os = exchange.getResponseBody()) {
-            os.write(message.getBytes());
+            os.write(response.getBytes());
         }
     }
+
 }

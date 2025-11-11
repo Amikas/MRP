@@ -5,6 +5,16 @@ public class User {
     private String username;
     private String password;
 
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    private String token;
+
     public User() {}
 
     public User(String username, String password) {
