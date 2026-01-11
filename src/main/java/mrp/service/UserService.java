@@ -77,9 +77,6 @@ public class UserService implements IUserService {
             response.put("statistics", userStats);
 
             if (currentUserId.equals(user.getId())) {
-                
-                response.put("email", ""); 
-                response.put("joinedAt", ""); 
                 response.put("isOwnProfile", true);
             } else {
                 response.put("isOwnProfile", false);

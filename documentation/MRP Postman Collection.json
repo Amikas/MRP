@@ -1,10 +1,11 @@
 {
 	"info": {
-		"_postman_id": "f0e4c2f7-4a5d-4e8a-b9c1-2d3e4f5a6b7c",
-		"name": "MRP - Media Ratings Platform",
-		"description": "API collection for the Media Ratings Platform application",
+		"_postman_id": "df701d87-9107-4c38-90de-723832b6718a",
+		"name": "MRP v7",
+		"description": "Simplified API collection for the Media Ratings Platform",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "1234567"
+		"_exporter_id": "49295912",
+		"_collection_link": "https://if24b120-9228123.postman.co/workspace/amin's-Workspace~9c146557-6cab-4d1d-876f-1b90dab56e94/collection/49295912-df701d87-9107-4c38-90de-723832b6718a?action=share&source=collection_link&creator=49295912"
 	},
 	"item": [
 		{
@@ -23,14 +24,33 @@
 				},
 				"url": {
 					"raw": "{{baseUrl}}/api/users/register",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "users", "register"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"users",
+						"register"
+					]
 				}
 			},
 			"response": []
 		},
 		{
 			"name": "User Login",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var responseJson = pm.response.json();",
+							"pm.environment.set(\"authToken\", responseJson.token);",
+							"pm.environment.set(\"userId\", responseJson.userId);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [
@@ -45,24 +65,17 @@
 				},
 				"url": {
 					"raw": "{{baseUrl}}/api/users/login",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "users", "login"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"users",
+						"login"
+					]
 				}
 			},
-			"response": [],
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"var responseJson = pm.response.json();",
-							"pm.environment.set(\"authToken\", responseJson.token);",
-							"pm.environment.set(\"userId\", responseJson.userId);"
-						],
-						"type": "text/javascript"
-					}
-				}
-			]
+			"response": []
 		},
 		{
 			"name": "Get User Profile",
@@ -76,8 +89,15 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/users/{{username}}/profile",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "users", "{{username}}", "profile"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"users",
+						"{{username}}",
+						"profile"
+					]
 				}
 			},
 			"response": []
@@ -102,8 +122,15 @@
 				},
 				"url": {
 					"raw": "{{baseUrl}}/api/users/{{username}}/profile",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "users", "{{username}}", "profile"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"users",
+						"{{username}}",
+						"profile"
+					]
 				}
 			},
 			"response": []
@@ -120,14 +147,32 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/users/leaderboard",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "users", "leaderboard"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"users",
+						"leaderboard"
+					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "Create Media Entry",
+			"name": "Create Media",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var responseJson = pm.response.json();",
+							"pm.environment.set(\"mediaId\", responseJson.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [
@@ -146,23 +191,16 @@
 				},
 				"url": {
 					"raw": "{{baseUrl}}/api/media",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "media"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"media"
+					]
 				}
 			},
-			"response": [],
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"var responseJson = pm.response.json();",
-							"pm.environment.set(\"mediaId\", responseJson.id);"
-						],
-						"type": "text/javascript"
-					}
-				}
-			]
+			"response": []
 		},
 		{
 			"name": "Get All Media",
@@ -176,8 +214,13 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/media",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "media"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"media"
+					]
 				}
 			},
 			"response": []
@@ -194,14 +237,20 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/media/{{mediaId}}",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "media", "{{mediaId}}"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"media",
+						"{{mediaId}}"
+					]
 				}
 			},
 			"response": []
 		},
 		{
-			"name": "Update Media Entry",
+			"name": "Update Media",
 			"request": {
 				"method": "PATCH",
 				"header": [
@@ -220,8 +269,14 @@
 				},
 				"url": {
 					"raw": "{{baseUrl}}/api/media/{{mediaId}}",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "media", "{{mediaId}}"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"media",
+						"{{mediaId}}"
+					]
 				}
 			},
 			"response": []
@@ -237,21 +292,19 @@
 					}
 				],
 				"url": {
-					"raw": "{{baseUrl}}/api/media/search?title=Test&genre=Action&mediaType=movie",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "media", "search"],
+					"raw": "{{baseUrl}}/api/media/search?title=Test",
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"media",
+						"search"
+					],
 					"query": [
 						{
 							"key": "title",
 							"value": "Test"
-						},
-						{
-							"key": "genre",
-							"value": "Action"
-						},
-						{
-							"key": "mediaType",
-							"value": "movie"
 						}
 					]
 				}
@@ -260,6 +313,18 @@
 		},
 		{
 			"name": "Rate Media",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"var responseJson = pm.response.json();",
+							"pm.environment.set(\"ratingId\", responseJson.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
 			"request": {
 				"method": "POST",
 				"header": [
@@ -278,23 +343,16 @@
 				},
 				"url": {
 					"raw": "{{baseUrl}}/api/ratings",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "ratings"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"ratings"
+					]
 				}
 			},
-			"response": [],
-			"event": [
-				{
-					"listen": "test",
-					"script": {
-						"exec": [
-							"var responseJson = pm.response.json();",
-							"pm.environment.set(\"ratingId\", responseJson.id);"
-						],
-						"type": "text/javascript"
-					}
-				}
-			]
+			"response": []
 		},
 		{
 			"name": "Get Media Ratings",
@@ -308,8 +366,13 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/ratings?mediaId={{mediaId}}",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "ratings"],
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"ratings"
+					],
 					"query": [
 						{
 							"key": "mediaId",
@@ -332,8 +395,14 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/ratings/my",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "ratings", "my"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"ratings",
+						"my"
+					]
 				}
 			},
 			"response": []
@@ -358,8 +427,14 @@
 				},
 				"url": {
 					"raw": "{{baseUrl}}/api/ratings/{{ratingId}}",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "ratings", "{{ratingId}}"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId}}"
+					]
 				}
 			},
 			"response": []
@@ -376,8 +451,15 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/ratings/{{ratingId}}/like",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "ratings", "{{ratingId}}", "like"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId}}",
+						"like"
+					]
 				}
 			},
 			"response": []
@@ -394,8 +476,15 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/ratings/{{ratingId}}/like",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "ratings", "{{ratingId}}", "like"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"ratings",
+						"{{ratingId}}",
+						"like"
+					]
 				}
 			},
 			"response": []
@@ -412,8 +501,14 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/favorites/{{mediaId}}",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "favorites", "{{mediaId}}"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"favorites",
+						"{{mediaId}}"
+					]
 				}
 			},
 			"response": []
@@ -430,8 +525,14 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/favorites/{{mediaId}}",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "favorites", "{{mediaId}}"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"favorites",
+						"{{mediaId}}"
+					]
 				}
 			},
 			"response": []
@@ -448,8 +549,13 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/favorites",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "favorites"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"favorites"
+					]
 				}
 			},
 			"response": []
@@ -466,8 +572,13 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/recommendations",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "recommendations"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"recommendations"
+					]
 				}
 			},
 			"response": []
@@ -484,27 +595,18 @@
 				],
 				"url": {
 					"raw": "{{baseUrl}}/api/media/{{mediaId}}/similar",
-					"host": ["{{baseUrl}}"],
-					"path": ["api", "media", "{{mediaId}}", "similar"]
+					"host": [
+						"{{baseUrl}}"
+					],
+					"path": [
+						"api",
+						"media",
+						"{{mediaId}}",
+						"similar"
+					]
 				}
 			},
 			"response": []
-		}
-	],
-	"event": [
-		{
-			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [""]
-			}
-		},
-		{
-			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [""]
-			}
 		}
 	],
 	"variable": [

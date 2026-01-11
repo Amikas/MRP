@@ -11,7 +11,9 @@ A RESTful HTTP server that acts as an API for managing media content (movies, se
 - Like other users' ratings
 - Mark media entries as favorites
 - View rating history and favorite lists
-- Receive personalized recommendations based on rating behavior
+- Receive personalized recommendations based on genre similarity and user behavior
+- Public leaderboard of most active users
+- Comment moderation system (comments require author confirmation)
 
 ## Technology Stack
 
@@ -19,9 +21,26 @@ A RESTful HTTP server that acts as an API for managing media content (movies, se
 - Maven for dependency management
 - PostgreSQL for data persistence
 - Jackson for JSON processing
-- com.sun.net.httpserver for HTTP handling
+- com.sun.net.httpserver for HTTP handling (as required by specifications)
 - JUnit 5 for testing
 - Mockito for mocking
+- UUID Creator for generating UUID v7 identifiers
+
+## Architecture
+
+The application follows a clean, layered architecture:
+
+### Layers:
+- **Presentation Layer**: HTTP handlers manage incoming requests and responses
+- **Application Layer**: Services contain business logic and coordinate operations
+- **Infrastructure Layer**: Repositories handle database interactions
+- **Domain Layer**: Models represent the core data structures
+
+### Components:
+- **Handlers**: UserHandler, MediaHandler, RatingHandler, FavoriteHandler, RecommendationHandler
+- **Services**: UserService, MediaService, RatingService, FavoriteService, RecommendationService
+- **Repositories**: UserRepository, MediaRepository, RatingRepository, FavoriteRepository
+- **Models**: User, MediaEntry, Rating, Favorite, RatingLike
 
 ## Prerequisites
 
@@ -92,7 +111,7 @@ The server will start on `http://localhost:8080`
 - `GET /api/media/{id}` - Get specific media entry
 - `PATCH /api/media/{id}` - Update media entry (creator only)
 - `DELETE /api/media/{id}` - Delete media entry (creator only)
-- `GET /api/media/search` - Search media with filters
+- `GET /api/media/search` - Search media with filters (by title, genre, type, year, rating)
 
 ### Rating System
 
@@ -143,6 +162,7 @@ The project includes over 20 unit tests covering:
 - Utility classes
 - Model validation
 - Business logic
+- Authentication and authorization
 
 ## API Testing
 
@@ -152,11 +172,11 @@ Import the provided Postman collection (`MRP Postman Collection.json`) to test a
 
 The application uses the following tables:
 
-- `users`: Stores user information
-- `media_entries`: Stores media content
-- `ratings`: Stores user ratings
-- `rating_likes`: Stores likes on ratings
-- `favorites`: Stores user favorites
+- `users`: Stores user information (id, username, password hash, token)
+- `media_entries`: Stores media content (id, title, description, type, year, genres, age restriction, creator)
+- `ratings`: Stores user ratings (id, media_id, user_id, score, comment, visibility status, timestamps)
+- `rating_likes`: Stores likes on ratings (id, user_id, rating_id, timestamp)
+- `favorites`: Stores user favorites (id, user_id, media_id, timestamp)
 
 ## Development Notes
 
@@ -165,7 +185,33 @@ The application uses the following tables:
 - All sensitive operations require proper authentication and authorization
 - Comments require confirmation by the author before becoming publicly visible
 - Media entries can only be modified by their creators
+- The recommendation system uses collaborative filtering combined with content-based filtering
+
+## Project Structure
+
+```
+src/
+├── main/
+│   ├── java/mrp/
+│   │   ├── database/          # Database connection utilities
+│   │   ├── di/               # Dependency injection container
+│   │   ├── handler/          # HTTP request handlers
+│   │   ├── model/            # Data models
+│   │   ├── repository/       # Database access layer
+│   │   ├── server/           # HTTP server setup
+│   │   ├── service/          # Business logic layer
+│   │   └── util/             # Utility classes
+│   └── resources/
+│       └── schema.sql        # Database schema
+└── test/
+    └── java/mrp/             # Unit tests
+```
 
 ## License
 
 This project is licensed under the terms specified in the LICENSE file.
+
+## Additional Resources
+
+- [Architecture Guide](architecture.md) - Detailed architecture documentation
+- [Development Protocol](protocol.md) - Development process and decisions documentation

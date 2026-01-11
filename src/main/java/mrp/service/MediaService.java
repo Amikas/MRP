@@ -245,12 +245,20 @@ public class MediaService implements IMediaService {
 
         if (query != null) {
             for (String param : query.split("&")) {
-                String[] pair = param.split("=");
-                if (pair.length > 1) {
-                    params.put(pair[0], pair[1]);
-                } else {
-                    params.put(pair[0], "");
+                String[] pair = param.split("=", 2); // Limit split to 2 parts to handle values with '=' characters
+                String key = pair[0];
+                String value = pair.length > 1 ? pair[1] : "";
+
+                // URL decode the key and value
+                try {
+                    key = java.net.URLDecoder.decode(key, "UTF-8");
+                    value = java.net.URLDecoder.decode(value, "UTF-8");
+                } catch (java.io.UnsupportedEncodingException e) {
+                    // If decoding fails, use the raw values
+                    e.printStackTrace();
                 }
+
+                params.put(key, value);
             }
         }
         return params;

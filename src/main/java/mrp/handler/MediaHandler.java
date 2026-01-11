@@ -26,10 +26,9 @@ public class MediaHandler implements HttpHandler {
                     mediaService.createMedia(exchange);
                     break;
                 case "GET":
-                    if (path.matches("/api/media/[^/]+")) {
+                    if (path.matches("/api/media/[a-fA-F0-9\\-]{36}")) { // UUID pattern
                         mediaService.getMedia(exchange);
                     } else if (path.equals("/api/media/search")) {
-                        
                         mediaService.searchMedia(exchange);
                     } else {
                         mediaService.getAllMedia(exchange);

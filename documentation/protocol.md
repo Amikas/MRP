@@ -95,3 +95,6 @@ Used Mockito to mock dependencies and test individual components in isolation. H
 **Recommendation algorithm**: Coming up with good recommendations was trickier than expected - I ended up combining user behavior with content similarity (genres, etc.).
 
 **Memory management**: Had to be careful about closing database connections and streams to avoid memory leaks.
+
+
+[MRP GitHub Repository](https://github.com/Amikas/MRP.git)
