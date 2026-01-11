@@ -10,7 +10,6 @@ public class MRPServer {
     private static final int PORT = 8080;
 
     public void start() throws IOException {
-        // Use Java's HttpServer, not MRPServer
         HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
 
         // Create handlers
