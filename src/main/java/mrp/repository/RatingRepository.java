@@ -2,6 +2,7 @@ package mrp.repository;
 
 import mrp.model.Rating;
 import mrp.database.DatabaseConnection;
+import mrp.repository.interfaces.IRatingRepository;
 
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -10,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public class RatingRepository {
+public class RatingRepository implements IRatingRepository {
     private Connection connection;
     private boolean externalConnection = false;
 

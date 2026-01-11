@@ -2,9 +2,10 @@ package mrp.service;
 
 import com.sun.net.httpserver.HttpExchange;
 import mrp.model.Rating;
-import mrp.repository.RatingRepository;
-import mrp.repository.MediaRepository;
-import mrp.repository.UserRepository;
+import mrp.repository.interfaces.IRatingRepository;
+import mrp.repository.interfaces.IMediaRepository;
+import mrp.repository.interfaces.IUserRepository;
+import mrp.service.interfaces.IRatingService;
 import mrp.util.JsonUtil;
 
 import java.io.IOException;
@@ -12,16 +13,22 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.*;
 
-public class RatingService {
-    private RatingRepository ratingRepository;
-    private MediaRepository mediaRepository;
-    private UserRepository userRepository;
+public class RatingService implements IRatingService {
+    private IRatingRepository ratingRepository;
+    private IMediaRepository mediaRepository;
+    private IUserRepository userRepository;
+
+    public RatingService(IRatingRepository ratingRepository, IMediaRepository mediaRepository, IUserRepository userRepository) {
+        this.ratingRepository = ratingRepository;
+        this.mediaRepository = mediaRepository;
+        this.userRepository = userRepository;
+    }
 
     public RatingService() {
         try {
-            this.ratingRepository = new RatingRepository();
-            this.mediaRepository = new MediaRepository();
-            this.userRepository = new UserRepository();
+            this.ratingRepository = (IRatingRepository) new mrp.repository.RatingRepository();
+            this.mediaRepository = (IMediaRepository) new mrp.repository.MediaRepository();
+            this.userRepository = (IUserRepository) new mrp.repository.UserRepository();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize repositories", e);
         }

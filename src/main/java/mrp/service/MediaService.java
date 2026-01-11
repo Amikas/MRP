@@ -2,23 +2,29 @@ package mrp.service;
 
 import com.sun.net.httpserver.HttpExchange;
 import mrp.model.MediaEntry;
+import mrp.repository.interfaces.IMediaRepository;
+import mrp.repository.interfaces.IUserRepository;
+import mrp.service.interfaces.IMediaService;
 import mrp.util.JsonUtil;
-import mrp.repository.MediaRepository;
-import mrp.repository.UserRepository;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.*;
 
-public class MediaService {
-    private MediaRepository mediaRepository;
-    private UserRepository userRepository;
+public class MediaService implements IMediaService {
+    private IMediaRepository mediaRepository;
+    private IUserRepository userRepository;
+
+    public MediaService(IMediaRepository mediaRepository, IUserRepository userRepository) {
+        this.mediaRepository = mediaRepository;
+        this.userRepository = userRepository;
+    }
 
     public MediaService() {
         try {
-            this.mediaRepository = new MediaRepository();
-            this.userRepository = new UserRepository();
+            this.mediaRepository = (IMediaRepository) new mrp.repository.MediaRepository();
+            this.userRepository = (IUserRepository) new mrp.repository.UserRepository();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize repositories", e);
         }

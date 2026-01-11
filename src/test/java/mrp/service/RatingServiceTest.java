@@ -26,7 +26,7 @@ class RatingServiceTest {
     void testRatingModel() {
         // Test the Rating model directly
         Rating rating = new Rating();
-        
+
         // Test default values
         assertNull(rating.getId());
         assertNull(rating.getMediaId());
@@ -34,7 +34,7 @@ class RatingServiceTest {
         assertEquals(0, rating.getScore());
         assertNull(rating.getComment());
         assertFalse(rating.isCommentPublic());
-        
+
         // Test setters and getters
         rating.setId("rating123");
         rating.setMediaId("media123");
@@ -42,7 +42,7 @@ class RatingServiceTest {
         rating.setScore(5);
         rating.setComment("Great movie!");
         rating.setCommentPublic(true);
-        
+
         assertEquals("rating123", rating.getId());
         assertEquals("media123", rating.getMediaId());
         assertEquals("user123", rating.getUserId());

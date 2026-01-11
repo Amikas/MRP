@@ -3,13 +3,14 @@ package mrp.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import mrp.service.UserService;
+import mrp.di.DIContainer;
+import mrp.service.interfaces.IUserService;
 import mrp.util.JsonUtil;
 
 import java.io.IOException;
 
 public class UserHandler implements HttpHandler {
-    private UserService userService = new UserService();
+    private IUserService userService = DIContainer.getUserService();
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {

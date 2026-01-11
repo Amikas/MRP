@@ -2,12 +2,13 @@ package mrp.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import mrp.service.RatingService;
+import mrp.di.DIContainer;
+import mrp.service.interfaces.IRatingService;
 
 import java.io.IOException;
 
 public class RatingHandler implements HttpHandler {
-    private final RatingService ratingService = new RatingService();
+    private final IRatingService ratingService = DIContainer.getRatingService();
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {

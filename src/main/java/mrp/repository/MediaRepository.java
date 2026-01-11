@@ -2,6 +2,7 @@ package mrp.repository;
 
 import mrp.model.MediaEntry;
 import mrp.database.DatabaseConnection;
+import mrp.repository.interfaces.IMediaRepository;
 
 import java.sql.*;
 import java.util.Arrays;
@@ -9,7 +10,7 @@ import java.util.Optional;
 import java.util.List;
 import java.util.ArrayList;
 
-public class MediaRepository {
+public class MediaRepository implements IMediaRepository {
     private final Connection connection;
 
     public MediaRepository() throws SQLException {

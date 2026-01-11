@@ -2,15 +2,16 @@ package mrp.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import mrp.service.FavoriteService;
+import mrp.di.DIContainer;
+import mrp.service.interfaces.IFavoriteService;
 
 import java.io.IOException;
 
 public class FavoriteHandler implements HttpHandler {
-    private FavoriteService favoriteService;
+    private IFavoriteService favoriteService;
 
     public FavoriteHandler() {
-        this.favoriteService = new FavoriteService();
+        this.favoriteService = DIContainer.getFavoriteService();
     }
 
     @Override

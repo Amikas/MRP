@@ -2,11 +2,12 @@ package mrp.repository;
 
 import mrp.database.DatabaseConnection;
 import mrp.model.MediaEntry;
+import mrp.repository.interfaces.IFavoriteRepository;
 
 import java.sql.*;
 import java.util.*;
 
-public class FavoriteRepository {
+public class FavoriteRepository implements IFavoriteRepository {
 
     public FavoriteRepository() throws SQLException {
         // No initialization needed, we'll use DatabaseConnection.createConnection()

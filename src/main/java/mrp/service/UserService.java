@@ -2,8 +2,9 @@ package mrp.service;
 
 import com.sun.net.httpserver.HttpExchange;
 import mrp.model.User;
+import mrp.repository.interfaces.IUserRepository;
+import mrp.service.interfaces.IUserService;
 import mrp.util.JsonUtil;
-import mrp.repository.UserRepository;
 import mrp.util.PasswordHasher;
 import mrp.util.TokenUtil;
 
@@ -12,12 +13,16 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.*;
 
-public class UserService {
-    private UserRepository userRepository;
+public class UserService implements IUserService {
+    private IUserRepository userRepository;
+
+    public UserService(IUserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     public UserService() {
         try {
-            this.userRepository = new UserRepository();
+            this.userRepository = (IUserRepository) new mrp.repository.UserRepository();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize UserRepository", e);
         }

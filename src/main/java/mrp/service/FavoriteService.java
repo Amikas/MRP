@@ -2,9 +2,10 @@ package mrp.service;
 
 import com.sun.net.httpserver.HttpExchange;
 import mrp.model.MediaEntry;
-import mrp.repository.FavoriteRepository;
-import mrp.repository.MediaRepository;
-import mrp.repository.UserRepository;
+import mrp.repository.interfaces.IFavoriteRepository;
+import mrp.repository.interfaces.IMediaRepository;
+import mrp.repository.interfaces.IUserRepository;
+import mrp.service.interfaces.IFavoriteService;
 import mrp.util.JsonUtil;
 
 import java.io.IOException;
@@ -12,16 +13,22 @@ import java.io.OutputStream;
 import java.sql.SQLException;
 import java.util.*;
 
-public class FavoriteService {
-    private FavoriteRepository favoriteRepository;
-    private MediaRepository mediaRepository;
-    private UserRepository userRepository;
+public class FavoriteService implements IFavoriteService {
+    private IFavoriteRepository favoriteRepository;
+    private IMediaRepository mediaRepository;
+    private IUserRepository userRepository;
+
+    public FavoriteService(IFavoriteRepository favoriteRepository, IMediaRepository mediaRepository, IUserRepository userRepository) {
+        this.favoriteRepository = favoriteRepository;
+        this.mediaRepository = mediaRepository;
+        this.userRepository = userRepository;
+    }
 
     public FavoriteService() {
         try {
-            this.favoriteRepository = new FavoriteRepository();
-            this.mediaRepository = new MediaRepository();
-            this.userRepository = new UserRepository();
+            this.favoriteRepository = (IFavoriteRepository) new mrp.repository.FavoriteRepository();
+            this.mediaRepository = (IMediaRepository) new mrp.repository.MediaRepository();
+            this.userRepository = (IUserRepository) new mrp.repository.UserRepository();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize repositories", e);
         }
@@ -49,7 +56,7 @@ public class FavoriteService {
     /**
      * Helper method to validate authentication
      */
-    private boolean isAuthenticated(HttpExchange exchange) {
+    public boolean isAuthenticated(HttpExchange exchange) {
         return getUserIdFromToken(exchange) != null;
     }
 
@@ -262,6 +269,52 @@ public class FavoriteService {
             response.put("mediaId", mediaId);
             response.put("mediaTitle", mediaOpt.get().getTitle());
             response.put("favoriteCount", favoriteCount);
+
+            sendSuccess(exchange, 200, response);
+
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
+        } catch (Exception e) {
+            sendError(exchange, 500, "Error: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Get all users who favorited a specific media entry
+     * GET /api/favorites/{mediaId}/users
+     */
+    public void getMediaFavorites(HttpExchange exchange) throws IOException {
+        if (!isAuthenticated(exchange)) {
+            sendError(exchange, 401, "Unauthorized");
+            return;
+        }
+
+        String path = exchange.getRequestURI().getPath();
+        String mediaId = path.substring(path.lastIndexOf("/") - 1); // Get mediaId from /api/favorites/{mediaId}/users
+
+        try {
+            if (mediaId == null || mediaId.isEmpty()) {
+                sendError(exchange, 400, "Media ID is required");
+                return;
+            }
+
+            // Check if media exists
+            var mediaOpt = mediaRepository.findById(mediaId);
+            if (mediaOpt.isEmpty()) {
+                sendError(exchange, 404, "Media not found");
+                return;
+            }
+
+            // Note: The current FavoriteRepository doesn't support getting users who favorited a media
+            // This would require a different implementation or a new method in the repository
+            // For now, returning the favorite count as a placeholder
+            int favoriteCount = favoriteRepository.getFavoriteCount(mediaId);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("mediaId", mediaId);
+            response.put("mediaTitle", mediaOpt.get().getTitle());
+            response.put("favoriteCount", favoriteCount);
+            response.put("message", "This endpoint is not fully implemented in the current repository structure");
 
             sendSuccess(exchange, 200, response);
 

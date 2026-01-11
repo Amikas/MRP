@@ -2,11 +2,12 @@ package mrp.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import mrp.service.MediaService;
+import mrp.di.DIContainer;
+import mrp.service.interfaces.IMediaService;
 import java.io.IOException;
 
 public class MediaHandler implements HttpHandler {
-    private MediaService mediaService = new MediaService();
+    private IMediaService mediaService = DIContainer.getMediaService();
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {

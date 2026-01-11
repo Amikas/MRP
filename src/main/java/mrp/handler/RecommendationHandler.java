@@ -3,15 +3,16 @@ package mrp.handler;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import mrp.service.RecommendationService;
+import mrp.di.DIContainer;
+import mrp.service.interfaces.IRecommendationService;
 
 import java.io.IOException;
 
 public class RecommendationHandler implements HttpHandler {
-    private final RecommendationService recommendationService;
+    private final IRecommendationService recommendationService;
 
     public RecommendationHandler() {
-        this.recommendationService = new RecommendationService();
+        this.recommendationService = DIContainer.getRecommendationService();
     }
 
     @Override

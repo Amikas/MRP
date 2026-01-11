@@ -1,6 +1,7 @@
 package mrp.server;
 
 import com.sun.net.httpserver.HttpServer;
+import mrp.di.DIContainer;
 import mrp.handler.*;
 
 import java.io.IOException;
@@ -12,7 +13,7 @@ public class MRPServer {
     public void start() throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
 
-        // Create handlers
+        // Create handlers using the DI container
         UserHandler userHandler = new UserHandler();
         MediaHandler mediaHandler = new MediaHandler();
         RatingHandler ratingHandler = new RatingHandler();
@@ -25,8 +26,6 @@ public class MRPServer {
         server.createContext("/api/ratings", ratingHandler::handle);  // Handles /api/ratings
         server.createContext("/api/favorites", favoriteHandler::handle);  // Handles /api/favorites
         server.createContext("/api/recommendations", recommendationHandler::handle);
-
-
 
         server.setExecutor(null);
         server.start();

@@ -2,6 +2,7 @@ package mrp.repository;
 
 import mrp.model.User;
 import mrp.database.DatabaseConnection;
+import mrp.repository.interfaces.IUserRepository;
 
 import java.sql.*;
 import java.util.Optional;
@@ -10,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 
-public class UserRepository {
+public class UserRepository implements IUserRepository {
     private final Connection connection;
 
     public UserRepository() throws SQLException {

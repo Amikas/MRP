@@ -3,9 +3,10 @@ package mrp.service;
 
 import com.sun.net.httpserver.HttpExchange;
 import mrp.model.MediaEntry;
-import mrp.repository.MediaRepository;
-import mrp.repository.RatingRepository;
-import mrp.repository.UserRepository;
+import mrp.repository.interfaces.IMediaRepository;
+import mrp.repository.interfaces.IRatingRepository;
+import mrp.repository.interfaces.IUserRepository;
+import mrp.service.interfaces.IRecommendationService;
 import mrp.util.JsonUtil;
 
 import java.io.IOException;
@@ -14,16 +15,22 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class RecommendationService {
-    private MediaRepository mediaRepository;
-    private RatingRepository ratingRepository;
-    private UserRepository userRepository;
+public class RecommendationService implements IRecommendationService {
+    private IMediaRepository mediaRepository;
+    private IRatingRepository ratingRepository;
+    private IUserRepository userRepository;
+
+    public RecommendationService(IMediaRepository mediaRepository, IRatingRepository ratingRepository, IUserRepository userRepository) {
+        this.mediaRepository = mediaRepository;
+        this.ratingRepository = ratingRepository;
+        this.userRepository = userRepository;
+    }
 
     public RecommendationService() {
         try {
-            this.mediaRepository = new MediaRepository();
-            this.ratingRepository = new RatingRepository();
-            this.userRepository = new UserRepository();
+            this.mediaRepository = (IMediaRepository) new mrp.repository.MediaRepository();
+            this.ratingRepository = (IRatingRepository) new mrp.repository.RatingRepository();
+            this.userRepository = (IUserRepository) new mrp.repository.UserRepository();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize repositories", e);
         }
@@ -101,8 +108,12 @@ public class RecommendationService {
      */
     public void getSimilarMedia(HttpExchange exchange) throws IOException {
         try {
-            // Extract mediaId from path
+            // Extract mediaId from path like /api/media/{mediaId}/similar
             String path = exchange.getRequestURI().getPath();
+            // Remove the trailing "/similar" to get the media ID
+            if (path.endsWith("/similar")) {
+                path = path.substring(0, path.length() - "/similar".length());
+            }
             String mediaId = path.substring(path.lastIndexOf("/") + 1);
 
             // Check if media exists
@@ -122,7 +133,9 @@ public class RecommendationService {
                     targetMedia.getReleaseYear() - 5, // min year
                     targetMedia.getReleaseYear() + 5, // max year
                     targetMedia.getAgeRestriction() + 3, // max age restriction
-                    3.0 // min rating
+                    3.0, // min rating
+                    null, // sortBy
+                    null // sortOrder
             );
 
             // Remove the target media from results
@@ -217,6 +230,10 @@ public class RecommendationService {
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(response.getBytes());
         }
+    }
+
+    public boolean isAuthenticated(HttpExchange exchange) {
+        return getUserIdFromToken(exchange) != null;
     }
 
     private void sendError(HttpExchange exchange, int code, String message) throws IOException {
