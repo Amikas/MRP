@@ -3,28 +3,60 @@ package mrp.service;
 import com.sun.net.httpserver.HttpExchange;
 import mrp.model.MediaEntry;
 import mrp.util.JsonUtil;
-import mrp.database.DatabaseConnection;
+import mrp.repository.MediaRepository;
+import mrp.repository.UserRepository;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.sql.SQLException;
+import java.util.*;
 
 public class MediaService {
-    private DatabaseConnection dbConnection = new DatabaseConnection();
+    private MediaRepository mediaRepository;
+    private UserRepository userRepository;
+
+    public MediaService() {
+        try {
+            this.mediaRepository = new MediaRepository();
+            this.userRepository = new UserRepository();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to initialize repositories", e);
+        }
+    }
 
     public boolean isAuthenticated(HttpExchange exchange) {
         String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
-        return authHeader != null && authHeader.startsWith("Bearer ");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return false;
+        }
+
+        String token = authHeader.substring(7);
+        return validateToken(token);
     }
 
-    private String getUsernameFromToken(HttpExchange exchange) {
+    private boolean validateToken(String token) {
+        try {
+            return userRepository.findByToken(token).isPresent();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private String getUserIdFromToken(HttpExchange exchange) {
         String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+
         String token = authHeader.substring(7);
-        return token.replace("-mrpToken", "");
+        try {
+            var userOpt = userRepository.findByToken(token);
+            return userOpt.map(mrp.model.User::getId).orElse(null);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     public void createMedia(HttpExchange exchange) throws IOException {
@@ -33,46 +65,43 @@ public class MediaService {
             return;
         }
 
-        try (Connection conn = dbConnection.getConnection()) {
+        try {
             String body = new String(exchange.getRequestBody().readAllBytes());
             MediaEntry media = JsonUtil.fromJson(body, MediaEntry.class);
 
-            // Get actual user ID
-            String username = getUsernameFromToken(exchange);
-            String userId = getUserId(conn, username);
+            // Get user ID from token
+            String userId = getUserIdFromToken(exchange);
             if (userId == null) {
                 sendError(exchange, 401, "User not found");
                 return;
             }
 
-            String sql = "INSERT INTO media_entries (id, title, description, media_type, release_year, genres, age_restriction, creator_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                String mediaId = java.util.UUID.randomUUID().toString();
-                stmt.setString(1, mediaId);
-                stmt.setString(2, media.getTitle());
-                stmt.setString(3, media.getDescription());
-                stmt.setString(4, media.getMediaType());
-                stmt.setInt(5, media.getReleaseYear());
-                stmt.setString(6, media.getGenres());
-                stmt.setInt(7, media.getAgeRestriction());
-                stmt.setString(8, userId);
-
-                stmt.executeUpdate();
-
-                media.setId(mediaId);
-                sendSuccess(exchange, 201, media);
+            // Validate required fields
+            if (media.getTitle() == null || media.getTitle().trim().isEmpty()) {
+                sendError(exchange, 400, "Title is required");
+                return;
             }
+            if (media.getMediaType() == null || media.getMediaType().trim().isEmpty()) {
+                sendError(exchange, 400, "Media type is required");
+                return;
+            }
+            if (!isValidMediaType(media.getMediaType())) {
+                sendError(exchange, 400, "Invalid media type. Must be 'movie', 'series', or 'game'");
+                return;
+            }
+
+            // Set media properties
+            media.setId(UUID.randomUUID().toString());
+            media.setCreatorId(userId);
+
+            // Save media
+            mediaRepository.save(media);
+
+            sendSuccess(exchange, 201, media);
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
         } catch (Exception e) {
             sendError(exchange, 500, "Error: " + e.getMessage());
-        }
-    }
-
-    private String getUserId(Connection conn, String username) throws SQLException {
-        String sql = "SELECT id FROM users WHERE username = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, username);
-            ResultSet rs = stmt.executeQuery();
-            return rs.next() ? rs.getString("id") : null;
         }
     }
 
@@ -82,141 +111,98 @@ public class MediaService {
             return;
         }
 
-        try (Connection conn = dbConnection.getConnection()) {
+        try {
             String path = exchange.getRequestURI().getPath();
             String mediaId = path.substring(path.lastIndexOf("/") + 1);
 
-            String body = new String(exchange.getRequestBody().readAllBytes());
-            MediaEntry updateData = JsonUtil.fromJson(body, MediaEntry.class);
-
-            StringBuilder sql = new StringBuilder("UPDATE media_entries SET ");
-            List<Object> params = new ArrayList<>();
-
-            if (updateData.getTitle() != null) {
-                sql.append("title = ?, ");
-                params.add(updateData.getTitle());
-            }
-            if (updateData.getDescription() != null) {
-                sql.append("description = ?, ");
-                params.add(updateData.getDescription());
-            }
-            if (updateData.getMediaType() != null) {
-                sql.append("media_type = ?, ");
-                params.add(updateData.getMediaType());
-            }
-            if (updateData.getReleaseYear() > 0) {
-                sql.append("release_year = ?, ");
-                params.add(updateData.getReleaseYear());
-            }
-            if (updateData.getGenres() != null) {
-                sql.append("genres = ?, ");
-                params.add(updateData.getGenres());
-            }
-            if (updateData.getAgeRestriction() > 0) {
-                sql.append("age_restriction = ?, ");
-                params.add(updateData.getAgeRestriction());
-            }
-
-            if (params.isEmpty()) {
-                sendError(exchange, 400, "No fields to update");
+            // Check if media exists
+            var mediaOpt = mediaRepository.findById(mediaId);
+            if (mediaOpt.isEmpty()) {
+                sendError(exchange, 404, "Media not found");
                 return;
             }
 
-            sql.setLength(sql.length() - 2);
-            sql.append(" WHERE id = ?");
-            params.add(mediaId);
+            MediaEntry existingMedia = mediaOpt.get();
 
-            try (PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
-                for (int i = 0; i < params.size(); i++) {
-                    stmt.setObject(i + 1, params.get(i));
-                }
-
-                int updated = stmt.executeUpdate();
-                if (updated > 0) {
-                    // Use your existing getMedia method to fetch the complete updated media
-                    MediaEntry updatedMedia = getMediaById(conn, mediaId);
-                    sendSuccess(exchange, 200, updatedMedia);
-                } else {
-                    sendError(exchange, 404, "Media not found");
-                }
+            // Verify user is the creator
+            String userId = getUserIdFromToken(exchange);
+            if (!existingMedia.getCreatorId().equals(userId)) {
+                sendError(exchange, 403, "You can only update your own media");
+                return;
             }
+
+            // Parse update data
+            String body = new String(exchange.getRequestBody().readAllBytes());
+            MediaEntry updateData = JsonUtil.fromJson(body, MediaEntry.class);
+
+            // Update only provided fields
+            if (updateData.getTitle() != null && !updateData.getTitle().trim().isEmpty()) {
+                existingMedia.setTitle(updateData.getTitle());
+            }
+            if (updateData.getDescription() != null) {
+                existingMedia.setDescription(updateData.getDescription());
+            }
+            if (updateData.getMediaType() != null && !updateData.getMediaType().trim().isEmpty()) {
+                if (!isValidMediaType(updateData.getMediaType())) {
+                    sendError(exchange, 400, "Invalid media type. Must be 'movie', 'series', or 'game'");
+                    return;
+                }
+                existingMedia.setMediaType(updateData.getMediaType());
+            }
+            if (updateData.getReleaseYear() > 0) {
+                existingMedia.setReleaseYear(updateData.getReleaseYear());
+            }
+            if (updateData.getGenres() != null) {
+                existingMedia.setGenres(updateData.getGenres());
+            }
+            if (updateData.getAgeRestriction() > 0) {
+                existingMedia.setAgeRestriction(updateData.getAgeRestriction());
+            }
+
+            // Save updated media
+            mediaRepository.update(existingMedia);
+
+            sendSuccess(exchange, 200, existingMedia);
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
         } catch (Exception e) {
             sendError(exchange, 500, "Error: " + e.getMessage());
         }
     }
 
-    // Extract the database logic from getMedia into a reusable method
-    private MediaEntry getMediaById(Connection conn, String mediaId) throws SQLException {
-        String sql = "SELECT * FROM media_entries WHERE id = ?";
-        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setString(1, mediaId);
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                MediaEntry media = new MediaEntry();
-                media.setId(rs.getString("id"));
-                media.setTitle(rs.getString("title"));
-                media.setDescription(rs.getString("description"));
-                media.setMediaType(rs.getString("media_type"));
-                media.setReleaseYear(rs.getInt("release_year"));
-                media.setGenres(rs.getString("genres"));
-                media.setAgeRestriction(rs.getInt("age_restriction"));
-                media.setCreatorId(rs.getString("creator_id"));
-                return media;
-            }
-        }
-        return null;
-    }
-
-    // Update your existing getMedia method to use the helper
     public void getMedia(HttpExchange exchange) throws IOException {
-        try (Connection conn = dbConnection.getConnection()) {
+        try {
             String path = exchange.getRequestURI().getPath();
             String mediaId = path.substring(path.lastIndexOf("/") + 1);
 
-            MediaEntry media = getMediaById(conn, mediaId);
-            if (media != null) {
-                sendSuccess(exchange, 200, media);
+            var mediaOpt = mediaRepository.findById(mediaId);
+            if (mediaOpt.isPresent()) {
+                sendSuccess(exchange, 200, mediaOpt.get());
             } else {
                 sendError(exchange, 404, "Media not found");
             }
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
         } catch (Exception e) {
             sendError(exchange, 500, "Error: " + e.getMessage());
         }
     }
+
     public void getAllMedia(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
             return;
         }
 
-        try (Connection conn = dbConnection.getConnection()) {
-            String sql = "SELECT * FROM media_entries";
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                ResultSet rs = stmt.executeQuery();
-
-                List<MediaEntry> mediaList = new ArrayList<>();
-                while (rs.next()) {
-                    MediaEntry media = new MediaEntry();
-                    media.setId(rs.getString("id"));
-                    media.setTitle(rs.getString("title"));
-                    media.setDescription(rs.getString("description"));
-                    media.setMediaType(rs.getString("media_type"));
-                    media.setReleaseYear(rs.getInt("release_year"));
-                    media.setGenres(rs.getString("genres"));
-                    media.setAgeRestriction(rs.getInt("age_restriction"));
-                    media.setCreatorId(rs.getString("creator_id"));
-                    mediaList.add(media);
-
-
-                }
-                sendSuccess(exchange, 200, mediaList);
-            }
+        try {
+            List<MediaEntry> mediaList = mediaRepository.findAll();
+            sendSuccess(exchange, 200, mediaList);
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
         } catch (Exception e) {
             sendError(exchange, 500, "Error: " + e.getMessage());
         }
     }
-
 
     public void deleteMedia(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
@@ -224,32 +210,97 @@ public class MediaService {
             return;
         }
 
-        try (Connection conn = dbConnection.getConnection()) {
+        try {
             String path = exchange.getRequestURI().getPath();
             String mediaId = path.substring(path.lastIndexOf("/") + 1);
 
-            // First get the media before deleting it
-            MediaEntry deletedMedia = getMediaById(conn, mediaId);
-            if (deletedMedia == null) {
+            // Check if media exists
+            var mediaOpt = mediaRepository.findById(mediaId);
+            if (mediaOpt.isEmpty()) {
                 sendError(exchange, 404, "Media not found");
                 return;
             }
 
-            String sql = "DELETE FROM media_entries WHERE id = ?";
-            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
-                stmt.setString(1, mediaId);
+            MediaEntry media = mediaOpt.get();
 
-                int deleted = stmt.executeUpdate();
-                if (deleted > 0) {
-                    sendSuccess(exchange, 200, deletedMedia);
-                } else {
-                    sendError(exchange, 404, "Media not found");
-                }
+            // Verify user is the creator
+            String userId = getUserIdFromToken(exchange);
+            if (!media.getCreatorId().equals(userId)) {
+                sendError(exchange, 403, "You can only delete your own media");
+                return;
             }
+
+            // Delete media
+            mediaRepository.delete(mediaId);
+
+            sendSuccess(exchange, 200, media);
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
         } catch (Exception e) {
             sendError(exchange, 500, "Error: " + e.getMessage());
         }
     }
+
+    // Add this new method for search functionality
+    // Update the searchMedia method - around line 225
+    public void searchMedia(HttpExchange exchange) throws IOException {
+
+        if (!isAuthenticated(exchange)) {
+            sendError(exchange, 401, "Unauthorized");
+          return;
+         }
+
+        try {
+            // Parse query parameters
+            Map<String, String> queryParams = parseQueryParams(exchange);
+
+            String title = queryParams.get("title");
+            String genre = queryParams.get("genre");
+            String mediaType = queryParams.get("mediaType");
+            Integer minYear = queryParams.containsKey("minYear") ?
+                    Integer.parseInt(queryParams.get("minYear")) : null;
+            Integer maxYear = queryParams.containsKey("maxYear") ?
+                    Integer.parseInt(queryParams.get("maxYear")) : null;
+            Integer maxAgeRestriction = queryParams.containsKey("maxAge") ?
+                    Integer.parseInt(queryParams.get("maxAge")) : null;
+            Double minRating = queryParams.containsKey("minRating") ?
+                    Double.parseDouble(queryParams.get("minRating")) : null;
+
+            List<MediaEntry> results = mediaRepository.search(
+                    title, genre, mediaType, minYear, maxYear, maxAgeRestriction, minRating
+            );
+
+            sendSuccess(exchange, 200, results);
+        } catch (NumberFormatException e) {
+            sendError(exchange, 400, "Invalid number format in query parameters");
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
+        } catch (Exception e) {
+            sendError(exchange, 500, "Error: " + e.getMessage());
+        }
+    }
+
+    private boolean isValidMediaType(String mediaType) {
+        return mediaType.equals("movie") || mediaType.equals("series") || mediaType.equals("game");
+    }
+
+    private Map<String, String> parseQueryParams(HttpExchange exchange) {
+        Map<String, String> params = new HashMap<>();
+        String query = exchange.getRequestURI().getQuery();
+
+        if (query != null) {
+            for (String param : query.split("&")) {
+                String[] pair = param.split("=");
+                if (pair.length > 1) {
+                    params.put(pair[0], pair[1]);
+                } else {
+                    params.put(pair[0], "");
+                }
+            }
+        }
+        return params;
+    }
+
     private void sendSuccess(HttpExchange exchange, int code, Object data) throws IOException {
         String response = JsonUtil.toJson(data);
         exchange.getResponseHeaders().set("Content-Type", "application/json");

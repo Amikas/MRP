@@ -12,4 +12,9 @@ public class DatabaseConnection {
     public Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
+
+    // Add a static method for services that don't need their own instance
+    public static Connection createConnection() throws SQLException {
+        return DriverManager.getConnection(URL, USER, PASSWORD);
+    }
 }
