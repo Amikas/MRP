@@ -1,4 +1,3 @@
-// Create: handler/RecommendationHandler.java
 package mrp.handler;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -21,11 +20,11 @@ public class RecommendationHandler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         try {
-            // GET /api/recommendations
+            
             if (method.equals("GET") && path.equals("/api/recommendations")) {
                 recommendationService.getRecommendations(exchange);
             }
-            // GET /api/media/{mediaId}/similar
+            
             else if (method.equals("GET") && path.matches("/api/media/[^/]+/similar")) {
                 recommendationService.getSimilarMedia(exchange);
             } else {

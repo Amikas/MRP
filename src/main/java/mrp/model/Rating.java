@@ -12,15 +12,13 @@ public class Rating {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    // Additional fields for display (will be populated by repository)
     private String username;
     private String mediaTitle;
     private int likeCount;
-    private boolean userHasLiked; // Whether the current user has liked this rating
+    private boolean userHasLiked; 
 
     public Rating() {}
 
-    // Getters and setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

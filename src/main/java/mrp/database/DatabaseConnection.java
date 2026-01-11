@@ -9,7 +9,6 @@ public class DatabaseConnection {
     private static final String USER = "postgres";
     private static final String PASSWORD = "password";
 
-    // Load driver once
     static {
         try {
             Class.forName("org.postgresql.Driver");
@@ -25,13 +24,11 @@ public class DatabaseConnection {
 
     public static Connection createConnection() throws SQLException {
         try {
-            // Test connection with a short timeout
+            
             Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
 
-            // Set reasonable timeouts
             conn.setNetworkTimeout(java.util.concurrent.Executors.newSingleThreadExecutor(), 5000);
 
-            // Simple validation
             if (conn.isValid(2)) {
                 return conn;
             } else {
@@ -42,7 +39,6 @@ public class DatabaseConnection {
             System.err.println("URL: " + URL);
             System.err.println("User: " + USER);
 
-            // Try one more time after a short delay
             try {
                 Thread.sleep(100);
                 return DriverManager.getConnection(URL, USER, PASSWORD);
@@ -52,7 +48,6 @@ public class DatabaseConnection {
         }
     }
 
-    // Simple connection test
     public static boolean testConnection() {
         try (Connection conn = createConnection()) {
             System.out.println("Database connection test: SUCCESS");

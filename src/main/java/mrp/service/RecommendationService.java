@@ -1,4 +1,3 @@
-// Create: service/RecommendationService.java
 package mrp.service;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -36,12 +35,8 @@ public class RecommendationService implements IRecommendationService {
         }
     }
 
-    /**
-     * GET /api/recommendations
-     * Get personalized recommendations for authenticated user
-     */
     public void getRecommendations(HttpExchange exchange) throws IOException {
-        // Authentication required
+        
         String userId = getUserIdFromToken(exchange);
         if (userId == null) {
             sendError(exchange, 401, "Unauthorized");
@@ -49,10 +44,9 @@ public class RecommendationService implements IRecommendationService {
         }
 
         try {
-            // Get user's ratings to understand preferences
+            
             List<mrp.model.Rating> userRatings = ratingRepository.findByUserId(userId);
 
-            // Separate highly rated media (score >= 4)
             List<String> highlyRatedMediaIds = userRatings.stream()
                     .filter(rating -> rating.getScore() >= 4)
                     .map(mrp.model.Rating::getMediaId)
@@ -61,31 +55,27 @@ public class RecommendationService implements IRecommendationService {
             List<MediaEntry> recommendations = new ArrayList<>();
 
             if (!highlyRatedMediaIds.isEmpty()) {
-                // Get genres from highly rated media
+                
                 Set<String> preferredGenres = getPreferredGenres(highlyRatedMediaIds);
 
-                // Get similar media based on preferred genres
                 recommendations = getMediaByGenres(preferredGenres, userId);
 
-                // Remove media user has already rated
                 Set<String> ratedMediaIds = userRatings.stream()
                         .map(mrp.model.Rating::getMediaId)
                         .collect(Collectors.toSet());
                 recommendations.removeIf(media -> ratedMediaIds.contains(media.getId()));
 
-                // Limit results
                 recommendations = recommendations.stream()
                         .limit(10)
                         .collect(Collectors.toList());
             } else {
-                // If user has no ratings, recommend popular media
+                
                 recommendations = getPopularMedia();
             }
 
-            // Add average ratings to each media
             for (MediaEntry media : recommendations) {
                 double avgRating = ratingRepository.getAverageRatingForMedia(media.getId());
-                // You could add this to a DTO or extend MediaEntry
+                
             }
 
             Map<String, Object> response = new HashMap<>();
@@ -102,21 +92,16 @@ public class RecommendationService implements IRecommendationService {
         }
     }
 
-    /**
-     * GET /api/media/{id}/similar
-     * Get media similar to a specific media item
-     */
     public void getSimilarMedia(HttpExchange exchange) throws IOException {
         try {
-            // Extract mediaId from path like /api/media/{mediaId}/similar
+            
             String path = exchange.getRequestURI().getPath();
-            // Remove the trailing "/similar" to get the media ID
+            
             if (path.endsWith("/similar")) {
                 path = path.substring(0, path.length() - "/similar".length());
             }
             String mediaId = path.substring(path.lastIndexOf("/") + 1);
 
-            // Check if media exists
             var mediaOpt = mediaRepository.findById(mediaId);
             if (mediaOpt.isEmpty()) {
                 sendError(exchange, 404, "Media not found");
@@ -125,23 +110,20 @@ public class RecommendationService implements IRecommendationService {
 
             MediaEntry targetMedia = mediaOpt.get();
 
-            // Find similar media based on genre, type, and age restriction
             List<MediaEntry> similarMedia = mediaRepository.search(
-                    null, // title
-                    String.join(",", targetMedia.getGenres()), // genre
-                    targetMedia.getMediaType(), // media type
-                    targetMedia.getReleaseYear() - 5, // min year
-                    targetMedia.getReleaseYear() + 5, // max year
-                    targetMedia.getAgeRestriction() + 3, // max age restriction
-                    3.0, // min rating
-                    null, // sortBy
-                    null // sortOrder
+                    null, 
+                    String.join(",", targetMedia.getGenres()), 
+                    targetMedia.getMediaType(), 
+                    targetMedia.getReleaseYear() - 5, 
+                    targetMedia.getReleaseYear() + 5, 
+                    targetMedia.getAgeRestriction() + 3, 
+                    3.0, 
+                    null, 
+                    null 
             );
 
-            // Remove the target media from results
             similarMedia.removeIf(media -> media.getId().equals(mediaId));
 
-            // Limit results
             similarMedia = similarMedia.stream()
                     .limit(8)
                     .collect(Collectors.toList());
@@ -160,7 +142,6 @@ public class RecommendationService implements IRecommendationService {
         }
     }
 
-    // Helper methods
     private Set<String> getPreferredGenres(List<String> mediaIds) throws SQLException {
         Set<String> genres = new HashSet<>();
         for (String mediaId : mediaIds) {
@@ -173,7 +154,7 @@ public class RecommendationService implements IRecommendationService {
     }
 
     private List<MediaEntry> getMediaByGenres(Set<String> genres, String excludeUserId) throws SQLException {
-        // Simple implementation - get media that matches any of the preferred genres
+        
         List<MediaEntry> allMedia = mediaRepository.findAll();
         List<MediaEntry> filtered = new ArrayList<>();
 
@@ -190,15 +171,14 @@ public class RecommendationService implements IRecommendationService {
     }
 
     private List<MediaEntry> getPopularMedia() throws SQLException {
-        // Get all media and sort by average rating (you might want to cache this)
+        
         List<MediaEntry> allMedia = mediaRepository.findAll();
 
-        // Sort by rating (you need to get ratings for each)
         allMedia.sort((m1, m2) -> {
             try {
                 double r1 = ratingRepository.getAverageRatingForMedia(m1.getId());
                 double r2 = ratingRepository.getAverageRatingForMedia(m2.getId());
-                return Double.compare(r2, r1); // Descending
+                return Double.compare(r2, r1); 
             } catch (SQLException e) {
                 return 0;
             }

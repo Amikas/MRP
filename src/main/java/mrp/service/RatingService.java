@@ -34,7 +34,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Helper method to get user ID from token
     private String getUserIdFromToken(HttpExchange exchange) {
         String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -51,13 +50,10 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Helper method to validate authentication
     private boolean isAuthenticated(HttpExchange exchange) {
         return getUserIdFromToken(exchange) != null;
     }
 
-    // Create a new rating (from /api/ratings endpoint)
-// Update the createRating method - around line 56
     public void createRating(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
@@ -68,10 +64,8 @@ public class RatingService implements IRatingService {
         try {
             String body = new String(exchange.getRequestBody().readAllBytes());
 
-            // Parse JSON as Map to handle flexible input
             Map<String, Object> ratingData = JsonUtil.fromJson(body, Map.class);
 
-            // Extract rating fields
             String mediaId = (String) ratingData.get("mediaId");
             if (mediaId == null || mediaId.trim().isEmpty()) {
                 sendError(exchange, 400, "Media ID is required");
@@ -100,21 +94,18 @@ public class RatingService implements IRatingService {
             String comment = (String) ratingData.get("comment");
             Boolean commentPublic = (Boolean) ratingData.get("commentPublic");
 
-            // Check if media exists
             var mediaOpt = mediaRepository.findById(mediaId);
             if (mediaOpt.isEmpty()) {
                 sendError(exchange, 404, "Media not found");
                 return;
             }
 
-            // Check if user has already rated this media - FIXED: Only check if there's actually a rating
             var existingRatingOpt = ratingRepository.findByUserAndMedia(userId, mediaId);
             if (existingRatingOpt.isPresent()) {
                 sendError(exchange, 409, "You have already rated this media. Use PATCH to update your rating.");
                 return;
             }
 
-            // Create and save rating
             Rating rating = new Rating();
             rating.setId(UUID.randomUUID().toString());
             rating.setMediaId(mediaId);
@@ -125,16 +116,15 @@ public class RatingService implements IRatingService {
 
             ratingRepository.save(rating);
 
-            // Get basic rating info without joins
             var savedRatingOpt = ratingRepository.findById(rating.getId());
             if (savedRatingOpt.isPresent()) {
                 Rating savedRating = savedRatingOpt.get();
-                // Add username from user repository
+                
                 var userOpt = userRepository.findById(savedRating.getUserId());
                 if (userOpt.isPresent()) {
                     savedRating.setUsername(userOpt.get().getUsername());
                 }
-                // Add media title from media repository
+                
                 savedRating.setMediaTitle(mediaOpt.get().getTitle());
 
                 sendSuccess(exchange, 201, savedRating);
@@ -149,7 +139,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Update an existing rating
     public void updateRating(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
@@ -161,7 +150,7 @@ public class RatingService implements IRatingService {
         String ratingId = path.substring(path.lastIndexOf("/") + 1);
 
         try {
-            // Check if rating exists and belongs to user
+            
             var ratingOpt = ratingRepository.findById(ratingId);
             if (ratingOpt.isEmpty()) {
                 sendError(exchange, 404, "Rating not found");
@@ -174,11 +163,9 @@ public class RatingService implements IRatingService {
                 return;
             }
 
-            // Parse update data as Map
             String body = new String(exchange.getRequestBody().readAllBytes());
             Map<String, Object> updateData = JsonUtil.fromJson(body, Map.class);
 
-            // Update only provided fields
             if (updateData.containsKey("score")) {
                 Object scoreObj = updateData.get("score");
                 try {
@@ -187,7 +174,7 @@ public class RatingService implements IRatingService {
                         existingRating.setScore(score);
                     }
                 } catch (NumberFormatException e) {
-                    // Ignore invalid score
+                    
                 }
             }
             if (updateData.containsKey("comment")) {
@@ -200,10 +187,8 @@ public class RatingService implements IRatingService {
                 }
             }
 
-            // Save updated rating
             ratingRepository.update(existingRating);
 
-            // Get updated rating with additional info
             var updatedRatingOpt = ratingRepository.findById(ratingId);
             sendSuccess(exchange, 200, updatedRatingOpt.get());
 
@@ -214,7 +199,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Delete a rating
     public void deleteRating(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
@@ -226,7 +210,7 @@ public class RatingService implements IRatingService {
         String ratingId = path.substring(path.lastIndexOf("/") + 1);
 
         try {
-            // Check if rating exists and belongs to user
+            
             var ratingOpt = ratingRepository.findById(ratingId);
             if (ratingOpt.isEmpty()) {
                 sendError(exchange, 404, "Rating not found");
@@ -239,7 +223,6 @@ public class RatingService implements IRatingService {
                 return;
             }
 
-            // Delete the rating
             ratingRepository.delete(ratingId, userId);
 
             Map<String, String> response = new HashMap<>();
@@ -254,8 +237,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-
-    // Get all ratings for a media (using query parameter)
     public void getMediaRatings(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
@@ -263,7 +244,7 @@ public class RatingService implements IRatingService {
         }
 
         try {
-            // Get mediaId from query parameter
+            
             String mediaId = extractMediaIdFromQuery(exchange);
 
             if (mediaId == null || mediaId.trim().isEmpty()) {
@@ -271,7 +252,6 @@ public class RatingService implements IRatingService {
                 return;
             }
 
-            // Check if media exists
             var mediaOpt = mediaRepository.findById(mediaId);
             if (mediaOpt.isEmpty()) {
                 sendError(exchange, 404, "Media not found");
@@ -280,14 +260,13 @@ public class RatingService implements IRatingService {
 
             List<Rating> ratings = ratingRepository.findByMediaId(mediaId);
 
-            // Filter out private comments unless it's the user's own rating
             String userId = getUserIdFromToken(exchange);
             List<Rating> filteredRatings = new ArrayList<>();
             for (Rating rating : ratings) {
                 if (rating.isCommentPublic() || rating.getUserId().equals(userId)) {
                     filteredRatings.add(rating);
                 } else {
-                    // Create a copy without the comment
+                    
                     Rating filtered = new Rating();
                     filtered.setId(rating.getId());
                     filtered.setMediaId(rating.getMediaId());
@@ -309,7 +288,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Get user's own ratings
     public void getUserRatings(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
@@ -327,19 +305,15 @@ public class RatingService implements IRatingService {
         }
     }
 
-
-
-    // Get media rating statistics (using query parameter)
-    // Update the getMediaRatingStats method - around line 315
     public void getMediaRatingStats(HttpExchange exchange) throws IOException {
-        // Allow stats without authentication (public info)
+        
         if (!isAuthenticated(exchange)) {
            sendError(exchange, 401, "Unauthorized");
            return;
         }
 
         try {
-            // Get mediaId from query parameter
+            
             String mediaId = extractMediaIdFromQuery(exchange);
 
             if (mediaId == null || mediaId.trim().isEmpty()) {
@@ -347,7 +321,6 @@ public class RatingService implements IRatingService {
                 return;
             }
 
-            // Check if media exists
             var mediaOpt = mediaRepository.findById(mediaId);
             if (mediaOpt.isEmpty()) {
                 sendError(exchange, 404, "Media not found");
@@ -359,7 +332,7 @@ public class RatingService implements IRatingService {
 
             Map<String, Object> stats = new HashMap<>();
             stats.put("mediaId", mediaId);
-            stats.put("averageRating", Math.round(averageRating * 10.0) / 10.0); // Round to 1 decimal
+            stats.put("averageRating", Math.round(averageRating * 10.0) / 10.0); 
             stats.put("ratingCount", ratingCount);
             stats.put("mediaTitle", mediaOpt.get().getTitle());
 
@@ -381,12 +354,11 @@ public class RatingService implements IRatingService {
         String userId = getUserIdFromToken(exchange);
         String path = exchange.getRequestURI().getPath();
 
-        // Extract ratingId from path like /api/ratings/{ratingId}/confirm-comment
         String[] pathParts = path.split("/");
-        String ratingId = pathParts[pathParts.length - 2]; // Second last part
+        String ratingId = pathParts[pathParts.length - 2]; 
 
         try {
-            // Check if rating exists
+            
             var ratingOpt = ratingRepository.findById(ratingId);
             if (ratingOpt.isEmpty()) {
                 sendError(exchange, 404, "Rating not found");
@@ -395,13 +367,11 @@ public class RatingService implements IRatingService {
 
             Rating rating = ratingOpt.get();
 
-            // Verify user owns this rating
             if (!rating.getUserId().equals(userId)) {
                 sendError(exchange, 403, "You can only confirm your own comments");
                 return;
             }
 
-            // Update comment to be public
             rating.setCommentPublic(true);
             ratingRepository.update(rating);
 
@@ -419,7 +389,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Helper method to extract mediaId from query string
     private String extractMediaIdFromQuery(HttpExchange exchange) {
         String query = exchange.getRequestURI().getQuery();
         if (query == null) return null;
@@ -433,7 +402,6 @@ public class RatingService implements IRatingService {
         return null;
     }
 
-    // Update the likeRating method - around line 220
     public void likeRating(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
@@ -443,11 +411,9 @@ public class RatingService implements IRatingService {
         String userId = getUserIdFromToken(exchange);
         String path = exchange.getRequestURI().getPath();
 
-        // Extract ratingId from path like /api/ratings/{ratingId}/like
         String[] pathParts = path.split("/");
         String ratingId = null;
 
-        // Find the ratingId in the path
         for (int i = 0; i < pathParts.length; i++) {
             if (i + 1 < pathParts.length && "like".equals(pathParts[i + 1])) {
                 ratingId = pathParts[i];
@@ -461,7 +427,7 @@ public class RatingService implements IRatingService {
         }
 
         try {
-            // Check if rating exists
+            
             var ratingOpt = ratingRepository.findById(ratingId);
             if (ratingOpt.isEmpty()) {
                 sendError(exchange, 404, "Rating not found");
@@ -470,19 +436,16 @@ public class RatingService implements IRatingService {
 
             Rating rating = ratingOpt.get();
 
-            // Check if user is trying to like their own rating
             if (rating.getUserId().equals(userId)) {
                 sendError(exchange, 400, "You cannot like your own rating");
                 return;
             }
 
-            // Check if user has already liked this rating
             if (ratingRepository.hasUserLikedRating(userId, ratingId)) {
                 sendError(exchange, 409, "You have already liked this rating");
                 return;
             }
 
-            // Add like
             ratingRepository.addLike(userId, ratingId);
 
             Map<String, String> response = new HashMap<>();
@@ -497,7 +460,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Update the unlikeRating method - around line 270
     public void unlikeRating(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
@@ -507,11 +469,9 @@ public class RatingService implements IRatingService {
         String userId = getUserIdFromToken(exchange);
         String path = exchange.getRequestURI().getPath();
 
-        // Extract ratingId from path like /api/ratings/{ratingId}/like
         String[] pathParts = path.split("/");
         String ratingId = null;
 
-        // Find the ratingId in the path
         for (int i = 0; i < pathParts.length; i++) {
             if (i + 1 < pathParts.length && "like".equals(pathParts[i + 1])) {
                 ratingId = pathParts[i];
@@ -525,20 +485,18 @@ public class RatingService implements IRatingService {
         }
 
         try {
-            // Check if rating exists
+            
             var ratingOpt = ratingRepository.findById(ratingId);
             if (ratingOpt.isEmpty()) {
                 sendError(exchange, 404, "Rating not found");
                 return;
             }
 
-            // Check if user has liked this rating
             if (!ratingRepository.hasUserLikedRating(userId, ratingId)) {
                 sendError(exchange, 404, "You have not liked this rating");
                 return;
             }
 
-            // Remove like
             ratingRepository.removeLike(userId, ratingId);
 
             Map<String, String> response = new HashMap<>();
@@ -553,8 +511,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Also fix getRating, updateRating, and deleteRating methods to extract ID from query string:
-// In getRating method - around line 180
     public void getRating(HttpExchange exchange) throws IOException {
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
@@ -562,7 +518,7 @@ public class RatingService implements IRatingService {
         }
 
         String path = exchange.getRequestURI().getPath();
-        // Extract ratingId from path like /api/ratings/{ratingId}
+        
         String[] pathParts = path.split("/");
         String ratingId = pathParts[pathParts.length - 1];
 
@@ -580,7 +536,6 @@ public class RatingService implements IRatingService {
         }
     }
 
-    // Helper methods for sending responses
     private void sendSuccess(HttpExchange exchange, int code, Object data) throws IOException {
         String response = JsonUtil.toJson(data);
         exchange.getResponseHeaders().set("Content-Type", "application/json");

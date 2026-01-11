@@ -82,7 +82,7 @@ public class MediaRepository implements IMediaRepository {
         }
 
         if (genre != null && !genre.isEmpty()) {
-            // Handle multiple genres (comma-separated)
+            
             if (genre.contains(",")) {
                 String[] genreArray = genre.split(",");
                 sql.append(" AND (");
@@ -125,7 +125,6 @@ public class MediaRepository implements IMediaRepository {
             params.add(minRating);
         }
 
-        // Add sorting
         if (sortBy != null && !sortBy.isEmpty()) {
             String order = "ASC";
             if (sortOrder != null && sortOrder.equalsIgnoreCase("desc")) {
@@ -149,16 +148,12 @@ public class MediaRepository implements IMediaRepository {
                     sql.append(" ORDER BY m.title ASC");
             }
         } else {
-            // Default sorting by title
+            
             sql.append(" ORDER BY m.title ASC");
         }
 
-        // Optional: Add LIMIT for pagination
-        // sql.append(" LIMIT ? OFFSET ?");
-
         List<MediaEntry> mediaList = new ArrayList<>();
 
-        // Debug: Print SQL for testing
         System.out.println("Search SQL: " + sql.toString());
         System.out.println("Parameters: " + params);
 
@@ -176,7 +171,6 @@ public class MediaRepository implements IMediaRepository {
         return mediaList;
     }
 
-    // Keep the existing search method for backward compatibility
     public List<MediaEntry> search(String title, String genre, String mediaType,
                                    Integer minYear, Integer maxYear,
                                    Integer maxAgeRestriction, Double minRating) throws SQLException {
@@ -243,14 +237,13 @@ public class MediaRepository implements IMediaRepository {
         media.setAgeRestriction(rs.getInt("age_restriction"));
         media.setCreatorId(rs.getString("creator_id"));
 
-        // Add average rating if it exists in the result set
         try {
             double avgRating = rs.getDouble("average_rating");
             if (!rs.wasNull()) {
                 media.setAverageRating(avgRating);
             }
         } catch (SQLException e) {
-            // Column might not exist in all queries, ignore
+            
         }
 
         return media;

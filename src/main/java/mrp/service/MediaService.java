@@ -75,14 +75,12 @@ public class MediaService implements IMediaService {
             String body = new String(exchange.getRequestBody().readAllBytes());
             MediaEntry media = JsonUtil.fromJson(body, MediaEntry.class);
 
-            // Get user ID from token
             String userId = getUserIdFromToken(exchange);
             if (userId == null) {
                 sendError(exchange, 401, "User not found");
                 return;
             }
 
-            // Validate required fields
             if (media.getTitle() == null || media.getTitle().trim().isEmpty()) {
                 sendError(exchange, 400, "Title is required");
                 return;
@@ -96,11 +94,9 @@ public class MediaService implements IMediaService {
                 return;
             }
 
-            // Set media properties
             media.setId(UUID.randomUUID().toString());
             media.setCreatorId(userId);
 
-            // Save media
             mediaRepository.save(media);
 
             sendSuccess(exchange, 201, media);
@@ -121,7 +117,6 @@ public class MediaService implements IMediaService {
             String path = exchange.getRequestURI().getPath();
             String mediaId = path.substring(path.lastIndexOf("/") + 1);
 
-            // Check if media exists
             var mediaOpt = mediaRepository.findById(mediaId);
             if (mediaOpt.isEmpty()) {
                 sendError(exchange, 404, "Media not found");
@@ -130,18 +125,15 @@ public class MediaService implements IMediaService {
 
             MediaEntry existingMedia = mediaOpt.get();
 
-            // Verify user is the creator
             String userId = getUserIdFromToken(exchange);
             if (!existingMedia.getCreatorId().equals(userId)) {
                 sendError(exchange, 403, "You can only update your own media");
                 return;
             }
 
-            // Parse update data
             String body = new String(exchange.getRequestBody().readAllBytes());
             MediaEntry updateData = JsonUtil.fromJson(body, MediaEntry.class);
 
-            // Update only provided fields
             if (updateData.getTitle() != null && !updateData.getTitle().trim().isEmpty()) {
                 existingMedia.setTitle(updateData.getTitle());
             }
@@ -165,7 +157,6 @@ public class MediaService implements IMediaService {
                 existingMedia.setAgeRestriction(updateData.getAgeRestriction());
             }
 
-            // Save updated media
             mediaRepository.update(existingMedia);
 
             sendSuccess(exchange, 200, existingMedia);
@@ -220,7 +211,6 @@ public class MediaService implements IMediaService {
             String path = exchange.getRequestURI().getPath();
             String mediaId = path.substring(path.lastIndexOf("/") + 1);
 
-            // Check if media exists
             var mediaOpt = mediaRepository.findById(mediaId);
             if (mediaOpt.isEmpty()) {
                 sendError(exchange, 404, "Media not found");
@@ -229,14 +219,12 @@ public class MediaService implements IMediaService {
 
             MediaEntry media = mediaOpt.get();
 
-            // Verify user is the creator
             String userId = getUserIdFromToken(exchange);
             if (!media.getCreatorId().equals(userId)) {
                 sendError(exchange, 403, "You can only delete your own media");
                 return;
             }
 
-            // Delete media
             mediaRepository.delete(mediaId);
 
             sendSuccess(exchange, 200, media);
@@ -246,7 +234,6 @@ public class MediaService implements IMediaService {
             sendError(exchange, 500, "Error: " + e.getMessage());
         }
     }
-
 
     private boolean isValidMediaType(String mediaType) {
         return mediaType.equals("movie") || mediaType.equals("series") || mediaType.equals("game");
@@ -269,14 +256,14 @@ public class MediaService implements IMediaService {
         return params;
     }
     public void searchMedia(HttpExchange exchange) throws IOException {
-        // ADD AUTHENTICATION CHECK - According to spec, all endpoints except login/register need auth
+        
         if (!isAuthenticated(exchange)) {
             sendError(exchange, 401, "Unauthorized");
             return;
         }
 
         try {
-            // Parse query parameters
+            
             Map<String, String> queryParams = parseQueryParams(exchange);
 
             String title = queryParams.get("title");
@@ -290,10 +277,9 @@ public class MediaService implements IMediaService {
                     Integer.parseInt(queryParams.get("maxAge")) : null;
             Double minRating = queryParams.containsKey("minRating") ?
                     Double.parseDouble(queryParams.get("minRating")) : null;
-            String sortBy = queryParams.get("sortBy"); // Keep sorting parameters
-            String sortOrder = queryParams.get("sortOrder"); // Keep sorting parameters
+            String sortBy = queryParams.get("sortBy"); 
+            String sortOrder = queryParams.get("sortOrder"); 
 
-            // Call the UPDATED search method with sorting parameters
             List<MediaEntry> results = mediaRepository.search(
                     title, genre, mediaType, minYear, maxYear,
                     maxAgeRestriction, minRating, sortBy, sortOrder);

@@ -16,7 +16,6 @@ public class MediaHandler implements HttpHandler {
 
         try {
 
-            // All other endpoints require authentication
             if (!mediaService.isAuthenticated(exchange)) {
                 sendError(exchange, 401, "Unauthorized");
                 return;
@@ -30,7 +29,7 @@ public class MediaHandler implements HttpHandler {
                     if (path.matches("/api/media/[^/]+")) {
                         mediaService.getMedia(exchange);
                     } else if (path.equals("/api/media/search")) {
-                        // Already handled above
+                        
                         mediaService.searchMedia(exchange);
                     } else {
                         mediaService.getAllMedia(exchange);

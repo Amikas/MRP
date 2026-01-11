@@ -17,11 +17,9 @@ public class RatingHandler implements HttpHandler {
         String query = exchange.getRequestURI().getQuery();
 
         try {
-            // Debug: Print what path we're receiving
+            
             System.out.println("RatingHandler received: " + method + " " + path);
 
-            // Since context is "/api/ratings", the path will be like "/my", "/stats", etc.
-            // Remove the base "/api/ratings" part if it exists
             if (path.startsWith("/api/ratings")) {
                 path = path.substring("/api/ratings".length());
                 if (path.isEmpty()) {
@@ -31,33 +29,28 @@ public class RatingHandler implements HttpHandler {
 
             System.out.println("Processed path: " + path);
 
-            // IMPORTANT: Check specific endpoints FIRST before general patterns
-
-            // Handle user's own ratings - CHECK THIS FIRST
             if (path.equals("/my") || path.equals("/my/")) {
-                // Handle user's own ratings
+                
                 System.out.println("Getting user's own ratings");
                 if ("GET".equals(method)) {
                     ratingService.getUserRatings(exchange);
                 } else {
                     sendError(exchange, 405, "Method not allowed");
                 }
-                return; // Add return to exit after handling
+                return; 
             }
 
-            // Handle rating statistics - CHECK THIS SECOND
             if (path.equals("/stats") || path.equals("/stats/")) {
-                // Handle rating statistics
+                
                 System.out.println("Getting rating statistics");
                 if ("GET".equals(method)) {
                     ratingService.getMediaRatingStats(exchange);
                 } else {
                     sendError(exchange, 405, "Method not allowed");
                 }
-                return; // Add return to exit after handling
+                return; 
             }
 
-            // Handle like/unlike - path like "/{ratingId}/like"
             if (path.matches("/[^/]+/like")) {
                 String ratingId = path.substring(1, path.lastIndexOf("/like"));
                 System.out.println("Like/unlike for ratingId: " + ratingId);
@@ -69,10 +62,9 @@ public class RatingHandler implements HttpHandler {
                 } else {
                     sendError(exchange, 405, "Method not allowed");
                 }
-                return; // Add return to exit after handling
+                return; 
             }
 
-            // Handle comment confirmation - path like "/{ratingId}/confirm-comment"
             if (path.matches("/[^/]+/confirm-comment")) {
                 String ratingId = path.substring(1, path.lastIndexOf("/confirm-comment"));
                 System.out.println("Confirm comment for ratingId: " + ratingId);
@@ -82,10 +74,9 @@ public class RatingHandler implements HttpHandler {
                 } else {
                     sendError(exchange, 405, "Method not allowed");
                 }
-                return; // Add return to exit after handling
+                return; 
             }
 
-            // Handle individual rating operations - path like "/{ratingId}"
             if (path.matches("/[^/]+")) {
                 String ratingId = path.substring(1);
                 System.out.println("Individual rating operation for ratingId: " + ratingId);
@@ -103,15 +94,14 @@ public class RatingHandler implements HttpHandler {
                     default:
                         sendError(exchange, 405, "Method not allowed");
                 }
-                return; // Add return to exit after handling
+                return; 
             }
 
-            // Handle ratings collection (root path)
             if (path.equals("/") || path.isEmpty()) {
                 System.out.println("Ratings collection endpoint");
                 switch (method) {
                     case "GET":
-                        // If query has mediaId, get ratings for that media
+                        
                         if (query != null && query.contains("mediaId=")) {
                             ratingService.getMediaRatings(exchange);
                         } else {
@@ -124,10 +114,9 @@ public class RatingHandler implements HttpHandler {
                     default:
                         sendError(exchange, 405, "Method not allowed");
                 }
-                return; // Add return to exit after handling
+                return; 
             }
 
-            // If we get here, no route matched
             sendError(exchange, 404, "Endpoint not found: " + path);
 
         } catch (Exception e) {

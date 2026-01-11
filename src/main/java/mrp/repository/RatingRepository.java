@@ -122,7 +122,7 @@ public class RatingRepository implements IRatingRepository {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             rating.setId(UUID.randomUUID().toString());
-            LocalDateTime now = LocalDateTime.now();  // Make sure you import java.time.LocalDateTime
+            LocalDateTime now = LocalDateTime.now();  
             rating.setCreatedAt(now);
             rating.setUpdatedAt(now);
 
@@ -132,7 +132,7 @@ public class RatingRepository implements IRatingRepository {
             stmt.setInt(4, rating.getScore());
             stmt.setString(5, rating.getComment());
             stmt.setBoolean(6, rating.isCommentPublic());
-            stmt.setTimestamp(7, Timestamp.valueOf(rating.getCreatedAt()));  // Convert LocalDateTime to Timestamp
+            stmt.setTimestamp(7, Timestamp.valueOf(rating.getCreatedAt()));  
             stmt.setTimestamp(8, Timestamp.valueOf(rating.getUpdatedAt()));
 
             stmt.executeUpdate();
@@ -238,7 +238,6 @@ public class RatingRepository implements IRatingRepository {
         rating.setComment(rs.getString("comment"));
         rating.setCommentPublic(rs.getBoolean("is_comment_public"));
 
-        // Handle nullable timestamps
         Timestamp createdAt = rs.getTimestamp("created_at");
         if (createdAt != null && !rs.wasNull()) {
             rating.setCreatedAt(createdAt.toLocalDateTime());
@@ -249,7 +248,6 @@ public class RatingRepository implements IRatingRepository {
             rating.setUpdatedAt(updatedAt.toLocalDateTime());
         }
 
-        // Additional fields (handle nulls)
         String username = rs.getString("username");
         if (username != null && !rs.wasNull()) {
             rating.setUsername(username);

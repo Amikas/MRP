@@ -10,12 +10,9 @@ import java.util.*;
 public class FavoriteRepository implements IFavoriteRepository {
 
     public FavoriteRepository() throws SQLException {
-        // No initialization needed, we'll use DatabaseConnection.createConnection()
+        
     }
 
-    /**
-     * Add a media entry to user's favorites
-     */
     public void addFavorite(String userId, String mediaId) throws SQLException {
         String sql = "INSERT INTO favorites (id, user_id, media_id) VALUES (?, ?, ?)";
 
@@ -28,9 +25,6 @@ public class FavoriteRepository implements IFavoriteRepository {
         }
     }
 
-    /**
-     * Remove a media entry from user's favorites
-     */
     public void removeFavorite(String userId, String mediaId) throws SQLException {
         String sql = "DELETE FROM favorites WHERE user_id = ? AND media_id = ?";
 
@@ -42,9 +36,6 @@ public class FavoriteRepository implements IFavoriteRepository {
         }
     }
 
-    /**
-     * Check if a media entry is in user's favorites
-     */
     public boolean isFavorite(String userId, String mediaId) throws SQLException {
         String sql = "SELECT id FROM favorites WHERE user_id = ? AND media_id = ?";
 
@@ -59,9 +50,6 @@ public class FavoriteRepository implements IFavoriteRepository {
         }
     }
 
-    /**
-     * Get count of users who favorited a media entry
-     */
     public int getFavoriteCount(String mediaId) throws SQLException {
         String sql = "SELECT COUNT(*) as count FROM favorites WHERE media_id = ?";
 
@@ -78,9 +66,6 @@ public class FavoriteRepository implements IFavoriteRepository {
         }
     }
 
-    /**
-     * Get all favorite media entries for a user
-     */
     public List<MediaEntry> getUserFavorites(String userId) throws SQLException {
         String sql = "SELECT me.* FROM media_entries me " +
                 "JOIN favorites f ON me.id = f.media_id " +
@@ -103,9 +88,6 @@ public class FavoriteRepository implements IFavoriteRepository {
         return favorites;
     }
 
-    /**
-     * Helper method to map ResultSet row to MediaEntry
-     */
     private MediaEntry mapRowToMediaEntry(ResultSet rs) throws SQLException {
         MediaEntry media = new MediaEntry();
         media.setId(rs.getString("id"));

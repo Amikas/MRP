@@ -28,16 +28,14 @@ public class UserService implements IUserService {
         }
     }
 
-    // Helper method to extract token from HttpExchange
     private String getTokenFromExchange(HttpExchange exchange) {
         String authHeader = exchange.getRequestHeaders().getFirst("Authorization");
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return null;
         }
-        return authHeader.substring(7); // Remove "Bearer " prefix
+        return authHeader.substring(7); 
     }
 
-    // Helper method to get user ID from HttpExchange
     public String getUserIdFromExchange(HttpExchange exchange) {
         String token = getTokenFromExchange(exchange);
         if (token == null) {
@@ -46,26 +44,23 @@ public class UserService implements IUserService {
         return getUserIdFromToken(token);
     }
 
-    // Helper method to check if request is authenticated
     public boolean isAuthenticated(HttpExchange exchange) {
         return getUserIdFromExchange(exchange) != null;
     }
 
     public void getUserProfile(HttpExchange exchange) throws IOException {
         try {
-            // Extract username from path
+            
             String path = exchange.getRequestURI().getPath();
             String[] pathParts = path.split("/");
-            String requestedUsername = pathParts[pathParts.length - 2]; // Get username from /api/users/{username}/profile
+            String requestedUsername = pathParts[pathParts.length - 2]; 
 
-            // Check authentication - user profile requires authentication
             String currentUserId = getUserIdFromExchange(exchange);
             if (currentUserId == null) {
                 sendError(exchange, 401, "Unauthorized");
                 return;
             }
 
-            // Find user by username
             var userOpt = userRepository.findByUsername(requestedUsername);
             if (userOpt.isEmpty()) {
                 sendError(exchange, 404, "User not found");
@@ -74,20 +69,17 @@ public class UserService implements IUserService {
 
             User user = userOpt.get();
 
-            // Get user statistics
             Map<String, Object> userStats = userRepository.getUserStats(user.getId());
 
-            // Prepare response
             Map<String, Object> response = new HashMap<>();
             response.put("username", user.getUsername());
             response.put("userId", user.getId());
             response.put("statistics", userStats);
 
-            // If it's the user's own profile, include more details
             if (currentUserId.equals(user.getId())) {
-                // Add private information
-                response.put("email", ""); // Add if you have email field
-                response.put("joinedAt", ""); // Add if you have registration date
+                
+                response.put("email", ""); 
+                response.put("joinedAt", ""); 
                 response.put("isOwnProfile", true);
             } else {
                 response.put("isOwnProfile", false);
@@ -103,7 +95,7 @@ public class UserService implements IUserService {
     }
 
     public void updateUserProfile(HttpExchange exchange) throws IOException {
-        // Authentication required for updating profile
+        
         String currentUserId = getUserIdFromExchange(exchange);
         if (currentUserId == null) {
             sendError(exchange, 401, "Unauthorized");
@@ -111,12 +103,11 @@ public class UserService implements IUserService {
         }
 
         try {
-            // Extract username from path
+            
             String path = exchange.getRequestURI().getPath();
             String[] pathParts = path.split("/");
             String requestedUsername = pathParts[pathParts.length - 2];
 
-            // Verify user can only update their own profile
             var userOpt = userRepository.findByUsername(requestedUsername);
             if (userOpt.isEmpty()) {
                 sendError(exchange, 404, "User not found");
@@ -129,14 +120,11 @@ public class UserService implements IUserService {
                 return;
             }
 
-            // Parse update data
             String body = new String(exchange.getRequestBody().readAllBytes());
             Map<String, Object> updateData = JsonUtil.fromJson(body, Map.class);
 
-            // Update user fields (only allow certain fields to be updated)
             boolean updated = false;
 
-            // Update password if provided
             if (updateData.containsKey("password")) {
                 String newPassword = (String) updateData.get("password");
                 if (newPassword != null && !newPassword.trim().isEmpty()) {
@@ -145,11 +133,8 @@ public class UserService implements IUserService {
                 }
             }
 
-            // Update email if provided
             if (updateData.containsKey("email")) {
-                // If you add email field to User model
-                // user.setEmail((String) updateData.get("email"));
-                // updated = true;
+
             }
 
             if (updated) {
@@ -171,7 +156,7 @@ public class UserService implements IUserService {
 
     public void getLeaderboard(HttpExchange exchange) throws IOException {
         try {
-            // Get leaderboard from repository
+            
             List<Map<String, Object>> leaderboard = userRepository.getLeaderboard();
 
             Map<String, Object> response = new HashMap<>();
@@ -188,33 +173,34 @@ public class UserService implements IUserService {
         }
     }
 
+    /**
+     * Creates a new user account after validating input and checking for duplicate usernames
+     * Hashes the password before storing in the database
+     */
     public void register(HttpExchange exchange) throws IOException {
         try {
-            // Parse request body to User object
+
             String body = new String(exchange.getRequestBody().readAllBytes());
             User user = JsonUtil.fromJson(body, User.class);
 
-            // Validate input
             if (user.getUsername() == null || user.getUsername().trim().isEmpty() ||
                     user.getPassword() == null || user.getPassword().trim().isEmpty()) {
                 sendError(exchange, 400, "Username and password are required");
                 return;
             }
 
-            // Check if username already exists
+            // Check if username is already taken
             if (userRepository.usernameExists(user.getUsername())) {
                 sendError(exchange, 409, "Username already exists");
                 return;
             }
 
-            // Create new user
+            // Create new user with unique ID and hashed password
             User newUser = new User();
             newUser.setId(UUID.randomUUID().toString());
             newUser.setUsername(user.getUsername());
             newUser.setPassword(PasswordHasher.hash(user.getPassword()));
-            // Token will be null initially
 
-            // Save user
             userRepository.save(newUser);
 
             Map<String, String> response = new HashMap<>();
@@ -231,6 +217,10 @@ public class UserService implements IUserService {
         }
     }
 
+    /**
+     * Authenticates a user by verifying their credentials against the database
+     * Generates a new authentication token upon successful login
+     */
     public void login(HttpExchange exchange) throws IOException {
         try {
             String body = new String(exchange.getRequestBody().readAllBytes());
@@ -241,7 +231,7 @@ public class UserService implements IUserService {
                 return;
             }
 
-            // Find user by username
+            // Look up user in database by username
             var userOpt = userRepository.findByUsername(user.getUsername());
 
             if (userOpt.isPresent()) {
@@ -249,15 +239,14 @@ public class UserService implements IUserService {
                 String storedHash = dbUser.getPassword();
                 String providedPassword = user.getPassword();
 
+                // Verify the provided password against the stored hash
                 if (PasswordHasher.verify(providedPassword, storedHash)) {
-                    // Generate UUID v7 token
+                    // Generate new authentication token and update database
                     String token = TokenUtil.generateToken();
                     String userId = dbUser.getId();
 
-                    // Store token in database
                     userRepository.updateToken(userId, token);
 
-                    // Return token in response
                     Map<String, String> response = new HashMap<>();
                     response.put("token", token);
                     response.put("userId", userId);
@@ -276,7 +265,6 @@ public class UserService implements IUserService {
         }
     }
 
-    // Helper method for token validation (used by MediaService)
     public boolean validateToken(String token) {
         try {
             return userRepository.findByToken(token).isPresent();
@@ -286,7 +274,6 @@ public class UserService implements IUserService {
         }
     }
 
-    // Helper method to get user ID from token (STRING version)
     public String getUserIdFromToken(String token) {
         try {
             var userOpt = userRepository.findByToken(token);
@@ -297,7 +284,6 @@ public class UserService implements IUserService {
         }
     }
 
-    // Helper method to get user from token
     public Optional<User> getUserFromToken(String token) {
         try {
             return userRepository.findByToken(token);

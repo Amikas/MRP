@@ -7,18 +7,13 @@ import mrp.service.interfaces.*;
 
 import java.sql.SQLException;
 
-/**
- * Simple dependency injection container/factory for the MRP application
- */
 public class DIContainer {
 
-    // Repository instances (singleton-like for this simple implementation)
     private static IUserRepository userRepository;
     private static IMediaRepository mediaRepository;
     private static IRatingRepository ratingRepository;
     private static IFavoriteRepository favoriteRepository;
 
-    // Service instances
     private static IUserService userService;
     private static IMediaService mediaService;
     private static IRatingService ratingService;
@@ -27,13 +22,12 @@ public class DIContainer {
 
     static {
         try {
-            // Initialize repositories
+            
             userRepository = (IUserRepository) new UserRepository();
             mediaRepository = (IMediaRepository) new MediaRepository();
             ratingRepository = (IRatingRepository) new RatingRepository();
             favoriteRepository = (IFavoriteRepository) new FavoriteRepository();
 
-            // Initialize services with their dependencies
             userService = new UserService(userRepository);
             mediaService = new MediaService(mediaRepository, userRepository);
             ratingService = new RatingService(ratingRepository, mediaRepository, userRepository);
@@ -44,7 +38,6 @@ public class DIContainer {
         }
     }
 
-    // Repository getters
     public static IUserRepository getUserRepository() {
         return userRepository;
     }
@@ -61,7 +54,6 @@ public class DIContainer {
         return favoriteRepository;
     }
 
-    // Service getters
     public static IUserService getUserService() {
         return userService;
     }

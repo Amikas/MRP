@@ -22,6 +22,11 @@ public class UserRepository implements IUserRepository {
         this.connection = connection;
     }
 
+    /**
+     * Finds a user by their username
+     * @param username The username to search for
+     * @return Optional containing the user if found, empty otherwise
+     */
     public Optional<User> findByUsername(String username) throws SQLException {
         String sql = "SELECT id, username, password, token FROM users WHERE username = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -40,6 +45,11 @@ public class UserRepository implements IUserRepository {
         return Optional.empty();
     }
 
+    /**
+     * Finds a user by their unique ID
+     * @param id The user ID to search for
+     * @return Optional containing the user if found, empty otherwise
+     */
     public Optional<User> findById(String id) throws SQLException {
         String sql = "SELECT id, username, password, token FROM users WHERE id = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -58,6 +68,11 @@ public class UserRepository implements IUserRepository {
         return Optional.empty();
     }
 
+    /**
+     * Finds a user by their authentication token
+     * @param token The authentication token to search for
+     * @return Optional containing the user if found, empty otherwise
+     */
     public Optional<User> findByToken(String token) throws SQLException {
         String sql = "SELECT id, username, password, token FROM users WHERE token = ?";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -122,7 +137,6 @@ public class UserRepository implements IUserRepository {
         }
     }
 
-    // Other methods remain the same...
     public List<Map<String, Object>> getLeaderboard() throws SQLException {
         String sql = """
             SELECT 

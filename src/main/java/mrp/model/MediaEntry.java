@@ -1,4 +1,3 @@
-// Update: model/MediaEntry.java
 package mrp.model;
 
 import java.util.List;
@@ -7,20 +6,18 @@ public class MediaEntry {
     private String id;
     private String title;
     private String description;
-    private String mediaType; // "movie", "series", "game"
+    private String mediaType; 
     private int releaseYear;
     private List<String> genres;
     private int ageRestriction;
     private String creatorId;
 
-    // Add this field for search results
     private double averageRating;
 
     public MediaEntry() {
         this.genres = new java.util.ArrayList<>();
     }
 
-    // Getters and setters
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
 

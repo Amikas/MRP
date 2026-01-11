@@ -1,4 +1,3 @@
-// Update: handler/UserHandler.java
 package mrp.handler;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -18,33 +17,35 @@ public class UserHandler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         try {
-            // User registration and login
+            // Route requests based on HTTP method and path
             if ("POST".equals(method)) {
                 if (path.equals("/api/users/register")) {
+                    // Handle user registration
                     userService.register(exchange);
                 } else if (path.equals("/api/users/login")) {
+                    // Handle user authentication
                     userService.login(exchange);
                 } else {
                     sendError(exchange, 404, "Not found");
                 }
             }
-            // User profile endpoints
+
             else if ("GET".equals(method)) {
-                // GET /api/users/{username}/profile
                 if (path.matches("/api/users/[^/]+/profile")) {
+                    // Return user profile information
                     userService.getUserProfile(exchange);
                 }
-                // GET /api/leaderboard
                 else if (path.equals("/api/users/leaderboard")) {
+                    // Return top users based on activity
                     userService.getLeaderboard(exchange);
                 } else {
                     sendError(exchange, 404, "Not found");
                 }
             }
-            // Update user profile
+
             else if ("PATCH".equals(method)) {
-                // PATCH /api/users/{username}/profile
                 if (path.matches("/api/users/[^/]+/profile")) {
+                    // Update user profile information
                     userService.updateUserProfile(exchange);
                 } else {
                     sendError(exchange, 404, "Not found");

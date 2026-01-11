@@ -20,23 +20,23 @@ public class FavoriteHandler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         try {
-            // POST /api/favorites/{mediaId} - Add to favorites
+            
             if (method.equals("POST") && path.matches(".*/api/favorites/[^/]+$")) {
                 favoriteService.addFavorite(exchange);
             }
-            // DELETE /api/favorites/{mediaId} - Remove from favorites
+            
             else if (method.equals("DELETE") && path.matches(".*/api/favorites/[^/]+$")) {
                 favoriteService.removeFavorite(exchange);
             }
-            // GET /api/favorites - Get all user's favorites
+            
             else if (method.equals("GET") && path.endsWith("/api/favorites")) {
                 favoriteService.getUserFavorites(exchange);
             }
-            // GET /api/favorites/{mediaId}/check - Check if favorite
+            
             else if (method.equals("GET") && path.matches(".*/api/favorites/[^/]+/check$")) {
                 favoriteService.checkIsFavorite(exchange);
             }
-            // GET /api/media/{mediaId}/favorite-count - Get favorite count
+            
             else if (method.equals("GET") && path.matches(".*/api/media/[^/]+/favorite-count$")) {
                 favoriteService.getMediaFavoriteCount(exchange);
             }
