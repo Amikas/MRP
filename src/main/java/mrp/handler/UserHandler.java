@@ -1,3 +1,4 @@
+// Update: handler/UserHandler.java
 package mrp.handler;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -16,6 +17,7 @@ public class UserHandler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         try {
+            // User registration and login
             if ("POST".equals(method)) {
                 if (path.equals("/api/users/register")) {
                     userService.register(exchange);
@@ -24,17 +26,41 @@ public class UserHandler implements HttpHandler {
                 } else {
                     sendError(exchange, 404, "Not found");
                 }
+            }
+            // User profile endpoints
+            else if ("GET".equals(method)) {
+                // GET /api/users/{username}/profile
+                if (path.matches("/api/users/[^/]+/profile")) {
+                    userService.getUserProfile(exchange);
+                }
+                // GET /api/leaderboard
+                else if (path.equals("/api/users/leaderboard")) {
+                    userService.getLeaderboard(exchange);
+                } else {
+                    sendError(exchange, 404, "Not found");
+                }
+            }
+            // Update user profile
+            else if ("PATCH".equals(method)) {
+                // PATCH /api/users/{username}/profile
+                if (path.matches("/api/users/[^/]+/profile")) {
+                    userService.updateUserProfile(exchange);
+                } else {
+                    sendError(exchange, 404, "Not found");
+                }
             } else {
                 sendError(exchange, 405, "Method not allowed");
             }
         } catch (Exception e) {
-            sendError(exchange, 500, "Internal server error");
+            sendError(exchange, 500, "Internal server error: " + e.getMessage());
         }
     }
 
     private void sendError(HttpExchange exchange, int code, String message) throws IOException {
-        exchange.sendResponseHeaders(code, message.length());
-        exchange.getResponseBody().write(message.getBytes());
+        String jsonResponse = "{\"error\":\"" + message + "\",\"status\":" + code + "}";
+        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.sendResponseHeaders(code, jsonResponse.length());
+        exchange.getResponseBody().write(jsonResponse.getBytes());
         exchange.getResponseBody().close();
     }
 }

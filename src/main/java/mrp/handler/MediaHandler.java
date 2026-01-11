@@ -14,11 +14,6 @@ public class MediaHandler implements HttpHandler {
         String path = exchange.getRequestURI().getPath();
 
         try {
-            // Allow search without authentication for public access
-            if (method.equals("GET") && path.equals("/api/media/search")) {
-                mediaService.searchMedia(exchange);
-                return;
-            }
 
             // All other endpoints require authentication
             if (!mediaService.isAuthenticated(exchange)) {

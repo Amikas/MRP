@@ -115,13 +115,13 @@ public class RatingRepository {
 
     public void save(Rating rating) throws SQLException {
         String sql = """
-            INSERT INTO ratings (id, media_id, user_id, score, comment, is_comment_public, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """;
+        INSERT INTO ratings (id, media_id, user_id, score, comment, is_comment_public, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """;
 
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             rating.setId(UUID.randomUUID().toString());
-            LocalDateTime now = LocalDateTime.now();
+            LocalDateTime now = LocalDateTime.now();  // Make sure you import java.time.LocalDateTime
             rating.setCreatedAt(now);
             rating.setUpdatedAt(now);
 
@@ -131,7 +131,7 @@ public class RatingRepository {
             stmt.setInt(4, rating.getScore());
             stmt.setString(5, rating.getComment());
             stmt.setBoolean(6, rating.isCommentPublic());
-            stmt.setTimestamp(7, Timestamp.valueOf(rating.getCreatedAt()));
+            stmt.setTimestamp(7, Timestamp.valueOf(rating.getCreatedAt()));  // Convert LocalDateTime to Timestamp
             stmt.setTimestamp(8, Timestamp.valueOf(rating.getUpdatedAt()));
 
             stmt.executeUpdate();

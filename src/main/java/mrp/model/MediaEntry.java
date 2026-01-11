@@ -1,4 +1,7 @@
+// Update: model/MediaEntry.java
 package mrp.model;
+
+import java.util.List;
 
 public class MediaEntry {
     private String id;
@@ -6,9 +9,12 @@ public class MediaEntry {
     private String description;
     private String mediaType; // "movie", "series", "game"
     private int releaseYear;
-    private String genres;
+    private List<String> genres;
     private int ageRestriction;
     private String creatorId;
+
+    // Add this field for search results
+    private double averageRating;
 
     public MediaEntry() {}
 
@@ -28,12 +34,15 @@ public class MediaEntry {
     public int getReleaseYear() { return releaseYear; }
     public void setReleaseYear(int releaseYear) { this.releaseYear = releaseYear; }
 
-    public String getGenres() { return genres; }
-    public void setGenres(String genres) { this.genres = genres; }
+    public List<String> getGenres() { return genres; }
+    public void setGenres(List<String> genres) { this.genres = genres; }
 
     public int getAgeRestriction() { return ageRestriction; }
     public void setAgeRestriction(int ageRestriction) { this.ageRestriction = ageRestriction; }
 
     public String getCreatorId() { return creatorId; }
     public void setCreatorId(String creatorId) { this.creatorId = creatorId; }
+
+    public double getAverageRating() { return averageRating; }
+    public void setAverageRating(double averageRating) { this.averageRating = averageRating; }
 }

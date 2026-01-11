@@ -241,44 +241,6 @@ public class MediaService {
         }
     }
 
-    // Add this new method for search functionality
-    // Update the searchMedia method - around line 225
-    public void searchMedia(HttpExchange exchange) throws IOException {
-
-        if (!isAuthenticated(exchange)) {
-            sendError(exchange, 401, "Unauthorized");
-          return;
-         }
-
-        try {
-            // Parse query parameters
-            Map<String, String> queryParams = parseQueryParams(exchange);
-
-            String title = queryParams.get("title");
-            String genre = queryParams.get("genre");
-            String mediaType = queryParams.get("mediaType");
-            Integer minYear = queryParams.containsKey("minYear") ?
-                    Integer.parseInt(queryParams.get("minYear")) : null;
-            Integer maxYear = queryParams.containsKey("maxYear") ?
-                    Integer.parseInt(queryParams.get("maxYear")) : null;
-            Integer maxAgeRestriction = queryParams.containsKey("maxAge") ?
-                    Integer.parseInt(queryParams.get("maxAge")) : null;
-            Double minRating = queryParams.containsKey("minRating") ?
-                    Double.parseDouble(queryParams.get("minRating")) : null;
-
-            List<MediaEntry> results = mediaRepository.search(
-                    title, genre, mediaType, minYear, maxYear, maxAgeRestriction, minRating
-            );
-
-            sendSuccess(exchange, 200, results);
-        } catch (NumberFormatException e) {
-            sendError(exchange, 400, "Invalid number format in query parameters");
-        } catch (SQLException e) {
-            sendError(exchange, 500, "Database error: " + e.getMessage());
-        } catch (Exception e) {
-            sendError(exchange, 500, "Error: " + e.getMessage());
-        }
-    }
 
     private boolean isValidMediaType(String mediaType) {
         return mediaType.equals("movie") || mediaType.equals("series") || mediaType.equals("game");
@@ -300,7 +262,45 @@ public class MediaService {
         }
         return params;
     }
+    public void searchMedia(HttpExchange exchange) throws IOException {
+        // ADD AUTHENTICATION CHECK - According to spec, all endpoints except login/register need auth
+        if (!isAuthenticated(exchange)) {
+            sendError(exchange, 401, "Unauthorized");
+            return;
+        }
 
+        try {
+            // Parse query parameters
+            Map<String, String> queryParams = parseQueryParams(exchange);
+
+            String title = queryParams.get("title");
+            String genre = queryParams.get("genre");
+            String mediaType = queryParams.get("mediaType");
+            Integer minYear = queryParams.containsKey("minYear") ?
+                    Integer.parseInt(queryParams.get("minYear")) : null;
+            Integer maxYear = queryParams.containsKey("maxYear") ?
+                    Integer.parseInt(queryParams.get("maxYear")) : null;
+            Integer maxAgeRestriction = queryParams.containsKey("maxAge") ?
+                    Integer.parseInt(queryParams.get("maxAge")) : null;
+            Double minRating = queryParams.containsKey("minRating") ?
+                    Double.parseDouble(queryParams.get("minRating")) : null;
+            String sortBy = queryParams.get("sortBy"); // Keep sorting parameters
+            String sortOrder = queryParams.get("sortOrder"); // Keep sorting parameters
+
+            // Call the UPDATED search method with sorting parameters
+            List<MediaEntry> results = mediaRepository.search(
+                    title, genre, mediaType, minYear, maxYear,
+                    maxAgeRestriction, minRating, sortBy, sortOrder);
+
+            sendSuccess(exchange, 200, results);
+        } catch (NumberFormatException e) {
+            sendError(exchange, 400, "Invalid number format in query parameters");
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
+        } catch (Exception e) {
+            sendError(exchange, 500, "Error: " + e.getMessage());
+        }
+    }
     private void sendSuccess(HttpExchange exchange, int code, Object data) throws IOException {
         String response = JsonUtil.toJson(data);
         exchange.getResponseHeaders().set("Content-Type", "application/json");

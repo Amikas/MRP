@@ -4,6 +4,7 @@ import mrp.model.MediaEntry;
 import mrp.database.DatabaseConnection;
 
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.List;
 import java.util.ArrayList;
@@ -63,13 +64,14 @@ public class MediaRepository {
 
     public List<MediaEntry> search(String title, String genre, String mediaType,
                                    Integer minYear, Integer maxYear,
-                                   Integer maxAgeRestriction, Double minRating) throws SQLException {
+                                   Integer maxAgeRestriction, Double minRating,
+                                   String sortBy, String sortOrder) throws SQLException {
         StringBuilder sql = new StringBuilder("""
-            SELECT m.*, COALESCE(AVG(r.score), 0) as average_rating
-            FROM media_entries m
-            LEFT JOIN ratings r ON m.id = r.media_id
-            WHERE 1=1
-            """);
+        SELECT m.*, COALESCE(AVG(r.score), 0) as average_rating
+        FROM media_entries m
+        LEFT JOIN ratings r ON m.id = r.media_id
+        WHERE 1=1
+        """);
 
         List<Object> params = new ArrayList<>();
 
@@ -79,8 +81,20 @@ public class MediaRepository {
         }
 
         if (genre != null && !genre.isEmpty()) {
-            sql.append(" AND LOWER(m.genres) LIKE LOWER(?)");
-            params.add("%" + genre + "%");
+            // Handle multiple genres (comma-separated)
+            if (genre.contains(",")) {
+                String[] genreArray = genre.split(",");
+                sql.append(" AND (");
+                for (int i = 0; i < genreArray.length; i++) {
+                    if (i > 0) sql.append(" OR ");
+                    sql.append("LOWER(m.genres) LIKE LOWER(?)");
+                    params.add("%" + genreArray[i].trim() + "%");
+                }
+                sql.append(")");
+            } else {
+                sql.append(" AND LOWER(m.genres) LIKE LOWER(?)");
+                params.add("%" + genre + "%");
+            }
         }
 
         if (mediaType != null && !mediaType.isEmpty()) {
@@ -105,12 +119,48 @@ public class MediaRepository {
 
         sql.append(" GROUP BY m.id");
 
-        if (minRating != null) {
+        if (minRating != null && minRating > 0) {
             sql.append(" HAVING COALESCE(AVG(r.score), 0) >= ?");
             params.add(minRating);
         }
 
+        // Add sorting
+        if (sortBy != null && !sortBy.isEmpty()) {
+            String order = "ASC";
+            if (sortOrder != null && sortOrder.equalsIgnoreCase("desc")) {
+                order = "DESC";
+            }
+
+            switch (sortBy.toLowerCase()) {
+                case "title":
+                    sql.append(" ORDER BY m.title ").append(order);
+                    break;
+                case "year":
+                    sql.append(" ORDER BY m.release_year ").append(order);
+                    break;
+                case "score":
+                    sql.append(" ORDER BY average_rating ").append(order);
+                    break;
+                case "rating":
+                    sql.append(" ORDER BY average_rating ").append(order);
+                    break;
+                default:
+                    sql.append(" ORDER BY m.title ASC");
+            }
+        } else {
+            // Default sorting by title
+            sql.append(" ORDER BY m.title ASC");
+        }
+
+        // Optional: Add LIMIT for pagination
+        // sql.append(" LIMIT ? OFFSET ?");
+
         List<MediaEntry> mediaList = new ArrayList<>();
+
+        // Debug: Print SQL for testing
+        System.out.println("Search SQL: " + sql.toString());
+        System.out.println("Parameters: " + params);
+
         try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
             for (int i = 0; i < params.size(); i++) {
                 stmt.setObject(i + 1, params.get(i));
@@ -125,6 +175,13 @@ public class MediaRepository {
         return mediaList;
     }
 
+    // Keep the existing search method for backward compatibility
+    public List<MediaEntry> search(String title, String genre, String mediaType,
+                                   Integer minYear, Integer maxYear,
+                                   Integer maxAgeRestriction, Double minRating) throws SQLException {
+        return search(title, genre, mediaType, minYear, maxYear, maxAgeRestriction, minRating, null, null);
+    }
+
     public void save(MediaEntry media) throws SQLException {
         String sql = "INSERT INTO media_entries (id, title, description, media_type, release_year, genres, age_restriction, creator_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         try (PreparedStatement stmt = connection.prepareStatement(sql)) {
@@ -133,8 +190,7 @@ public class MediaRepository {
             stmt.setString(3, media.getDescription());
             stmt.setString(4, media.getMediaType());
             stmt.setInt(5, media.getReleaseYear());
-            stmt.setString(6, media.getGenres());
-            stmt.setInt(7, media.getAgeRestriction());
+            stmt.setString(6, String.join(",", media.getGenres()));            stmt.setInt(7, media.getAgeRestriction());
             stmt.setString(8, media.getCreatorId());
             stmt.executeUpdate();
         }
@@ -147,7 +203,7 @@ public class MediaRepository {
             stmt.setString(2, media.getDescription());
             stmt.setString(3, media.getMediaType());
             stmt.setInt(4, media.getReleaseYear());
-            stmt.setString(5, media.getGenres());
+            stmt.setString(5, String.join(",", media.getGenres()));
             stmt.setInt(6, media.getAgeRestriction());
             stmt.setString(7, media.getId());
             stmt.executeUpdate();
@@ -175,9 +231,27 @@ public class MediaRepository {
         media.setDescription(rs.getString("description"));
         media.setMediaType(rs.getString("media_type"));
         media.setReleaseYear(rs.getInt("release_year"));
-        media.setGenres(rs.getString("genres"));
+
+        String genresStr = rs.getString("genres");
+        if (genresStr != null && !genresStr.isEmpty()) {
+            media.setGenres(Arrays.asList(genresStr.split(",")));
+        } else {
+            media.setGenres(new ArrayList<>());
+        }
+
         media.setAgeRestriction(rs.getInt("age_restriction"));
         media.setCreatorId(rs.getString("creator_id"));
+
+        // Add average rating if it exists in the result set
+        try {
+            double avgRating = rs.getDouble("average_rating");
+            if (!rs.wasNull()) {
+                media.setAverageRating(avgRating);
+            }
+        } catch (SQLException e) {
+            // Column might not exist in all queries, ignore
+        }
+
         return media;
     }
 }

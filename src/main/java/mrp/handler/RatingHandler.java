@@ -71,6 +71,19 @@ public class RatingHandler implements HttpHandler {
                 return; // Add return to exit after handling
             }
 
+            // Handle comment confirmation - path like "/{ratingId}/confirm-comment"
+            if (path.matches("/[^/]+/confirm-comment")) {
+                String ratingId = path.substring(1, path.lastIndexOf("/confirm-comment"));
+                System.out.println("Confirm comment for ratingId: " + ratingId);
+
+                if ("PATCH".equals(method)) {
+                    ratingService.confirmComment(exchange);
+                } else {
+                    sendError(exchange, 405, "Method not allowed");
+                }
+                return; // Add return to exit after handling
+            }
+
             // Handle individual rating operations - path like "/{ratingId}"
             if (path.matches("/[^/]+")) {
                 String ratingId = path.substring(1);

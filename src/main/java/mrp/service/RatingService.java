@@ -326,10 +326,10 @@ public class RatingService {
     // Update the getMediaRatingStats method - around line 315
     public void getMediaRatingStats(HttpExchange exchange) throws IOException {
         // Allow stats without authentication (public info)
-        // if (!isAuthenticated(exchange)) {
-        //     sendError(exchange, 401, "Unauthorized");
-        //     return;
-        // }
+        if (!isAuthenticated(exchange)) {
+           sendError(exchange, 401, "Unauthorized");
+           return;
+        }
 
         try {
             // Get mediaId from query parameter
@@ -357,6 +357,53 @@ public class RatingService {
             stats.put("mediaTitle", mediaOpt.get().getTitle());
 
             sendSuccess(exchange, 200, stats);
+
+        } catch (SQLException e) {
+            sendError(exchange, 500, "Database error: " + e.getMessage());
+        } catch (Exception e) {
+            sendError(exchange, 500, "Error: " + e.getMessage());
+        }
+    }
+
+    public void confirmComment(HttpExchange exchange) throws IOException {
+        if (!isAuthenticated(exchange)) {
+            sendError(exchange, 401, "Unauthorized");
+            return;
+        }
+
+        String userId = getUserIdFromToken(exchange);
+        String path = exchange.getRequestURI().getPath();
+
+        // Extract ratingId from path like /api/ratings/{ratingId}/confirm-comment
+        String[] pathParts = path.split("/");
+        String ratingId = pathParts[pathParts.length - 2]; // Second last part
+
+        try {
+            // Check if rating exists
+            var ratingOpt = ratingRepository.findById(ratingId);
+            if (ratingOpt.isEmpty()) {
+                sendError(exchange, 404, "Rating not found");
+                return;
+            }
+
+            Rating rating = ratingOpt.get();
+
+            // Verify user owns this rating
+            if (!rating.getUserId().equals(userId)) {
+                sendError(exchange, 403, "You can only confirm your own comments");
+                return;
+            }
+
+            // Update comment to be public
+            rating.setCommentPublic(true);
+            ratingRepository.update(rating);
+
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Comment confirmed and made public");
+            response.put("ratingId", ratingId);
+            response.put("commentPublic", "true");
+
+            sendSuccess(exchange, 200, response);
 
         } catch (SQLException e) {
             sendError(exchange, 500, "Database error: " + e.getMessage());
