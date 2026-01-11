@@ -16,7 +16,9 @@ public class MediaEntry {
     // Add this field for search results
     private double averageRating;
 
-    public MediaEntry() {}
+    public MediaEntry() {
+        this.genres = new java.util.ArrayList<>();
+    }
 
     // Getters and setters
     public String getId() { return id; }

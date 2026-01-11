@@ -10,6 +10,9 @@ public class TokenUtil {
     }
 
     public static boolean isValidToken(String token) {
+        if (token == null) {
+            return false;
+        }
         try {
             UUID.fromString(token);
             return true;
